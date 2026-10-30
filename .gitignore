@@ -1,0 +1,14 @@
+node_modules/
+out/
+dist/
+release/
+.cache/
+.downloads/
+.artifacts/
+*.log
+.env
+.env.*
+!.env.example
+
+# Local visual references are not project assets.
+/*.mp4
