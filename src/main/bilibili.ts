@@ -1,5 +1,8 @@
-import type { ErrorCode, PublicError, Video, VideoPage, Selection } from '../shared/contracts.ts'
+import type { Video, VideoPage, Selection, SearchPage } from '../shared/contracts.ts'
 import { isAllowedMediaUrl, parseVideoInput } from '../shared/video-input.ts'
+import { resolveVideoInput } from './links.ts'
+import { BiliError, errorFromApi } from './errors.ts'
+export { BiliError, errorFromApi, toPublicError } from './errors.ts'
 
 export type Fetcher = (url: string, options?: RequestInit) => Promise<Response>
 interface RawAudio { id?: number; baseUrl?: string; base_url?: string; backupUrl?: string[]; backup_url?: string[]; mimeType?: string; mime_type?: string; codecs?: string; bandwidth?: number }
@@ -7,39 +10,49 @@ export interface ResolvedAudio {
   urls: string[]; mimeType: string; codec: string; bandwidth: number; selection: Selection; page: VideoPage
 }
 
-export class BiliError extends Error {
-  code: ErrorCode
-  retryable: boolean
-  constructor(code: ErrorCode, message: string, retryable = false) {
-    super(message); this.name = 'BiliError'; this.code = code; this.retryable = retryable
-  }
-}
-
-export function toPublicError(error: unknown): PublicError {
-  if (error instanceof BiliError) return { code: error.code, message: error.message, retryable: error.retryable }
-  return { code: 'NETWORK', message: '请求未完成，请检查网络后重试。', retryable: true }
-}
-
-export function errorFromApi(code: number): BiliError {
-  if ([-404, 62002, 62012].includes(code)) return new BiliError('NOT_FOUND', '视频已失效、被删除或当前不可见。')
-  if ([-101, -104, -403, 62004, 10015001].includes(code)) return new BiliError('LOGIN_REQUIRED', '此内容需要登录或额外访问权限，P0 无账号模式无法播放。')
-  if ([-352, -412, -509].includes(code)) return new BiliError('ACCESS_RESTRICTED', 'B站暂时限制了此请求，请稍后重试。', true)
-  return new BiliError('UPSTREAM', `B站未能返回可用内容（错误码 ${code}）。`, true)
+export function plainSearchTitle(value: string): string {
+  // Return plain text, including the upstream highlight spans. Never render API HTML.
+  return value.replace(/<[^>]*>/g, '').replace(/&#(x[0-9a-f]+|\d+);/gi, (_match, entity: string) => {
+    const code = entity[0]!.toLowerCase() === 'x' ? parseInt(entity.slice(1), 16) : Number(entity)
+    return code > 0 && code <= 0x10ffff && !(code >= 0xd800 && code <= 0xdfff) ? String.fromCodePoint(code) : ''
+  }).replace(/&(amp|quot|apos|lt|gt|nbsp);/g, (_match, entity: string) => ({ amp: '&', quot: '"', apos: "'", lt: '<', gt: '>', nbsp: ' ' })[entity]!)
 }
 
 export class BilibiliClient {
   private fetcher: Fetcher
   private videos = new Map<string, Video>()
   private userAgent: string
+  private searchDevice: Promise<string> | null = null
   constructor(fetcher: Fetcher, userAgent = 'Mozilla/5.0') { this.fetcher = fetcher; this.userAgent = userAgent }
+
+  private anonymousSearchDevice(): Promise<string> {
+    this.searchDevice ??= (async () => {
+      try {
+        const response = await this.fetcher('https://api.bilibili.com/x/frontend/finger/spi', {
+          headers: { Referer: 'https://www.bilibili.com/', 'User-Agent': this.userAgent },
+          credentials: 'omit', signal: AbortSignal.timeout(10000),
+        })
+        if (!response.ok) return ''
+        const body = await response.json() as { code?: number; data?: { b_3?: unknown } }
+        const id = body.data?.b_3
+        return body.code === 0 && typeof id === 'string' && /^[a-zA-Z0-9_-]{10,100}$/.test(id) ? `buvid3=${id}` : ''
+      } catch { return '' }
+    })()
+    return this.searchDevice
+  }
 
   private async request<T>(path: string, parameters: Record<string, string>): Promise<T> {
     const url = new URL(path, 'https://api.bilibili.com')
     for (const [key, value] of Object.entries(parameters)) url.searchParams.set(key, value)
     let response: Response
     try {
+      const headers = new Headers({ Referer: 'https://www.bilibili.com/', 'User-Agent': this.userAgent })
+      if (path === '/x/web-interface/search/type') {
+        const device = await this.anonymousSearchDevice()
+        if (device) headers.set('Cookie', device)
+      }
       response = await this.fetcher(url.toString(), {
-        headers: { Referer: 'https://www.bilibili.com/', 'User-Agent': this.userAgent },
+        headers,
         credentials: 'omit', signal: AbortSignal.timeout(15000),
       })
     } catch { throw new BiliError('NETWORK', 'B站接口连接失败或超时，请检查网络后重试。', true) }
@@ -54,7 +67,10 @@ export class BilibiliClient {
 
   async inspect(input: unknown): Promise<Video> {
     let reference
-    try { reference = parseVideoInput(input) } catch (error) { throw new BiliError('INVALID_INPUT', (error as Error).message) }
+    try { reference = parseVideoInput(await resolveVideoInput(input, this.fetcher, this.userAgent)) } catch (error) {
+      if (error instanceof BiliError) throw error
+      throw new BiliError('INVALID_INPUT', (error as Error).message)
+    }
     const data = await this.request<{
       bvid: string; aid: number; title: string; pic?: string; owner?: { name?: string }
       pages?: { page: number; cid: number; part: string; duration: number }[]
@@ -73,6 +89,28 @@ export class BilibiliClient {
     return video
   }
 
+  async search(input: unknown): Promise<SearchPage> {
+    const request = input as { keyword?: unknown; page?: unknown } | null
+    if (!request || typeof request.keyword !== 'string' || !request.keyword.trim() || request.keyword.length > 100 ||
+      !Number.isSafeInteger(request.page) || Number(request.page) < 1 || Number(request.page) > 50) {
+      throw new BiliError('INVALID_INPUT', '搜索词需为 1–100 个字符，页码需在 1–50 之间。')
+    }
+    const keyword = request.keyword.trim()
+    const page = Number(request.page)
+    const data = await this.request<{ numPages?: number; numResults?: number; result?: { bvid?: string; title?: string; author?: string; duration?: string }[] }>(
+      '/x/web-interface/search/type', { search_type: 'video', keyword, page: String(page), page_size: '20', order: 'totalrank' })
+    if (!Array.isArray(data.result)) throw new BiliError('UPSTREAM', '搜索结果格式异常，请稍后重试。', true)
+    const seen = new Set<string>()
+    const items = data.result.flatMap(item => {
+      if (!item || typeof item.bvid !== 'string' || !/^BV[a-zA-Z0-9]{10}$/.test(item.bvid) || typeof item.title !== 'string' || seen.has(item.bvid)) return []
+      seen.add(item.bvid)
+      const parts = String(item.duration ?? '').split(':').map(Number)
+      const duration = parts.every(value => Number.isFinite(value) && value >= 0) ? parts.reduce((sum, value) => sum * 60 + value, 0) : 0
+      return [{ bvid: item.bvid, title: plainSearchTitle(item.title).slice(0, 500), uploader: typeof item.author === 'string' ? plainSearchTitle(item.author) : '未知 UP 主', duration }]
+    })
+    return { keyword, page, pages: Math.min(50, Math.max(1, Math.trunc(Number(data.numPages) || 1))), total: Math.max(0, Math.trunc(Number(data.numResults) || 0)), items }
+  }
+
   async resolve(selection: Selection): Promise<ResolvedAudio> {
     if (!selection || !/^BV[a-zA-Z0-9]{10}$/.test(selection.bvid) || !Number.isSafeInteger(selection.cid) || selection.cid <= 0) {
       throw new BiliError('INVALID_INPUT', '播放参数无效，请重新解析视频。')
@@ -87,7 +125,7 @@ export class BilibiliClient {
       isAllowedMediaUrl(stream.baseUrl ?? stream.base_url) && /^(mp4a\.|opus)/.test(stream.codecs ?? ''))
     streams.sort((a, b) => Number(b.codecs?.startsWith('mp4a.')) - Number(a.codecs?.startsWith('mp4a.')) || (b.bandwidth ?? 0) - (a.bandwidth ?? 0))
     const stream = streams[0]
-    if (!stream) throw new BiliError('AUDIO_UNAVAILABLE', '此视频没有返回 P0 可播放的独立音轨，当前版本暂不处理整段视频回退。')
+    if (!stream) throw new BiliError('AUDIO_UNAVAILABLE', '此视频没有返回可播放的独立音轨，当前版本暂不处理整段视频回退。')
     const urls = [stream.baseUrl ?? stream.base_url!, ...(stream.backupUrl ?? stream.backup_url ?? [])].filter(isAllowedMediaUrl)
     return { urls: [...new Set(urls)], mimeType: stream.mimeType ?? stream.mime_type ?? 'audio/mp4', codec: stream.codecs ?? '', bandwidth: stream.bandwidth ?? 0, selection, page }
   }

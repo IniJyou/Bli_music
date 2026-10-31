@@ -1,5 +1,6 @@
 type IconName = 'arrow' | 'link' | 'play' | 'pause' | 'previous' | 'next' | 'home' |
-  'immersive' | 'volume' | 'muted' | 'refresh' | 'close' | 'info' | 'back' | 'music' | 'expand'
+  'immersive' | 'volume' | 'muted' | 'refresh' | 'close' | 'info' | 'back' | 'music' | 'expand' |
+  'search' | 'plus' | 'up' | 'down' | 'trash' | 'sequence' | 'repeat-all' | 'repeat-one' | 'shuffle' | 'history' | 'list' | 'locate'
 
 export function Icon({ name, size = 20 }: { name: IconName; size?: number }) {
   const paths: Record<IconName, React.ReactNode> = {
@@ -19,6 +20,18 @@ export function Icon({ name, size = 20 }: { name: IconName; size?: number }) {
     back: <path d="M19 12H5m6-6-6 6 6 6" />,
     music: <><path d="M10 17V5l9-2v12M10 8l9-2" /><ellipse cx="7" cy="18" rx="3" ry="2" /><ellipse cx="16" cy="16" rx="3" ry="2" /></>,
     expand: <><path d="M8 3H3v5m13-5h5v5M3 16v5h5m8 0h5v-5" /></>,
+    search: <><circle cx="10.5" cy="10.5" r="6.5" /><path d="m16 16 5 5" /></>,
+    history: <><circle cx="12" cy="12" r="8" /><path d="M12 7v5l3 2" /></>,
+    list: <><path d="M9 6h12M9 12h12M9 18h12" /><circle cx="4" cy="6" r=".6" /><circle cx="4" cy="12" r=".6" /><circle cx="4" cy="18" r=".6" /></>,
+    plus: <path d="M12 4v16M4 12h16" />,
+    up: <path d="m6 14 6-6 6 6" />,
+    down: <path d="m6 10 6 6 6-6" />,
+    trash: <><path d="M4 6h16M9 6V3h6v3M6 6l1 15h10l1-15M10 10v7M14 10v7" /></>,
+    locate: <><circle cx="12" cy="12" r="7" /><circle cx="12" cy="12" r="2" /><path d="M12 2v3M12 19v3M2 12h3M19 12h3" /></>,
+    sequence: <><path d="M4 5h16M4 11h16M4 17h10m3-3 4 3-4 3" /></>,
+    'repeat-all': <><path d="M5 7h14l-3-3m3 3-3 3M19 17H5l3 3m-3-3 3-3M21 10v4M3 10v4" /></>,
+    'repeat-one': <><path d="M5 7h14l-3-3m3 3-3 3M19 17H5l3 3m-3-3 3-3M11 10l2-1v6" /></>,
+    shuffle: <><path d="M3 6h3c4 0 8 12 12 12h3m-4-4 4 4-4 3M3 18h3c4 0 8-12 12-12h3m-4-3 4 3-4 4" /></>,
   }
   return <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">{paths[name]}</svg>
 }

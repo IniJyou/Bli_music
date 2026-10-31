@@ -6,10 +6,14 @@ import { BilibiliClient, toPublicError, type Fetcher } from './bilibili.ts'
 import { MediaGateway } from './media.ts'
 import type { Result, Selection } from '../shared/contracts.ts'
 import { runSmoke } from './smoke.ts'
+import iconPath from '../../resources/coffee.ico?asset'
+import { BiliError } from './errors.ts'
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), '../..')
-const smoke = process.argv.includes('--p0-smoke')
-const runtime = resolve(root, '.cache/runtime', smoke ? `smoke-${process.pid}` : 'p0')
+if (process.platform === 'win32') app.setAppUserModelId('com.inijyou.blimusic')
+const smoke = process.argv.includes('--p1-smoke') || process.argv.includes('--p0-smoke')
+if (process.argv.includes('--software-rendering')) app.disableHardwareAcceleration()
+const runtime = resolve(root, '.cache/runtime', smoke ? `smoke-${process.pid}` : 'player')
 mkdirSync(runtime, { recursive: true })
 for (const key of ['userData', 'sessionData', 'crashDumps'] as const) app.setPath(key, runtime)
 app.setAppLogsPath(resolve(runtime, 'logs'))
@@ -24,7 +28,10 @@ app.whenReady().then(async () => {
   const uiSession = session.fromPartition(`mymusic-ui-${process.pid}`, { cache: false })
   const apiSession = session.fromPartition(`mymusic-api-${process.pid}`, { cache: false })
   const userAgent = `Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/${process.versions.chrome} Safari/537.36`
-  const fetcher: Fetcher = (url, options) => apiSession.fetch(url, options)
+  // Electron 45 cancels manual redirects instead of exposing their Location.
+  // Node fetch preserves the response so short links and CDN redirects can be
+  // validated one hop at a time. Node fetch has no browser cookie jar.
+  const fetcher: Fetcher = (url, options) => options?.redirect === 'manual' ? fetch(url, options) : apiSession.fetch(url, options)
   const client = new BilibiliClient(fetcher, userAgent)
   const gateway = new MediaGateway(client, fetcher, userAgent)
   const rendererRoot = resolve(root, 'out/renderer')
@@ -65,28 +72,42 @@ app.whenReady().then(async () => {
   }
   handle('p0:inspect', input => client.inspect(input))
   handle('p0:prepare', input => gateway.prepare(input as Selection))
+  handle('music:search', input => client.search(input))
+  handle('window:appearance', async value => {
+    const colors: Record<string, string> = { blue: '#b8cccb', orange: '#ff4f1d', yellow: '#ffcb08' }
+    if (typeof value !== 'string' || !Object.hasOwn(colors, value)) throw new BiliError('INVALID_INPUT', '未知场景。')
+    window?.setBackgroundColor(colors[value]!)
+  })
   ipcMain.handle('p0:info', event => {
     if (!isTrusted(event)) throw new Error('Invalid sender')
     return { version: app.getVersion(), chromium: process.versions.chrome, anonymous: true }
   })
   window = new BrowserWindow({
     width: 1280, height: 860, minWidth: 900, minHeight: 680, show: false,
-    title: 'Bli Music', backgroundColor: '#f5f1e8', autoHideMenuBar: true,
+    title: 'Bli Music', icon: iconPath, backgroundColor: '#b8cccb', autoHideMenuBar: true,
     webPreferences: {
       preload: resolve(root, 'out/preload/index.cjs'), session: uiSession,
       sandbox: true, contextIsolation: true, nodeIntegration: false, webSecurity: true,
       autoplayPolicy: 'no-user-gesture-required',
     },
   })
+  const firstPaint = new Promise<void>(resolve => window!.once('ready-to-show', () => resolve()))
+  let resizeTimer: ReturnType<typeof setTimeout> | undefined
+  let resizing = false
+  window.on('resize', () => {
+    if (!resizing) { resizing = true; window?.webContents.send('window:resizing', true) }
+    clearTimeout(resizeTimer)
+    resizeTimer = setTimeout(() => { resizing = false; window?.webContents.send('window:resizing', false) }, 180)
+  })
   window.webContents.setWindowOpenHandler(() => ({ action: 'deny' }))
   window.webContents.on('will-navigate', event => event.preventDefault())
   window.webContents.on('render-process-gone', (_event, details) => console.error('Renderer stopped:', details.reason))
-  window.on('closed', () => { window = null })
+  window.on('closed', () => { clearTimeout(resizeTimer); window = null })
   await window.loadURL(devUrl ?? 'mymusic://app/index.html')
   if (smoke) {
     const passed = await runSmoke(window, client, gateway, root)
     app.exit(passed ? 0 : 1)
-  } else { window.show() }
+  } else { await firstPaint; window?.show() }
 }).catch(error => { console.error('Application startup failed:', error.message); app.exit(1) })
 
 app.on('window-all-closed', () => app.quit())
