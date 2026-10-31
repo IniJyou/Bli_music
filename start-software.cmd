@@ -1,0 +1,4 @@
+@echo off
+cd /d "%~dp0"
+pwsh -NoProfile -ExecutionPolicy Bypass -File "%~dp0scripts\start.ps1" -SoftwareRendering
+if errorlevel 1 pause

@@ -1,8 +1,8 @@
 {
   "name": "bli-music",
-  "version": "0.0.1",
+  "version": "0.1.0",
   "private": true,
-  "description": "Windows Bilibili audio feasibility demo (P0)",
+  "description": "Windows music player with anonymous Bilibili search and audio queues",
   "type": "module",
   "main": "out/main/index.js",
   "license": "UNLICENSED",
@@ -13,7 +13,9 @@
     "start": "node scripts/run.mjs start",
     "typecheck": "tsc --noEmit",
     "test": "node --disable-warning=ExperimentalWarning --test tests/*.test.ts",
-    "smoke:p0": "node scripts/run.mjs smoke"
+    "smoke:p0": "node scripts/run.mjs smoke",
+    "smoke:p1": "node scripts/run.mjs smoke",
+    "start:software": "node scripts/run.mjs start-software"
   },
   "dependencies": {
     "react": "19.3.1",

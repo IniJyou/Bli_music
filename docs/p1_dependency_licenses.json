@@ -1,0 +1,877 @@
+{
+  "checkedAt": "2026-10-30T09:26:44.878Z",
+  "kind": "Installed dependency declarations; not a complete distribution legal audit",
+  "lockfileSHA256": "c26942249d0fcfcba06a6befe92838461ef6f526b8d3b3372705f8c28d859a6e",
+  "installedPackages": 86,
+  "platformPackagesNotInstalled": 75,
+  "licenses": {
+    "MIT": 74,
+    "ISC": 7,
+    "Apache-2.0": 3,
+    "CC-BY-4.0": 1,
+    "BSD-3-Clause": 1
+  },
+  "missingDeclarations": [],
+  "electronRuntimeNotices": [
+    {
+      "path": "node_modules/electron/dist/LICENSE",
+      "present": true
+    },
+    {
+      "path": "node_modules/electron/dist/LICENSES.chromium.html",
+      "present": true
+    }
+  ],
+  "packages": [
+    {
+      "name": "@babel/code-frame",
+      "version": "7.29.7",
+      "license": "MIT",
+      "location": "node_modules/@babel/code-frame",
+      "source": "https://registry.npmjs.org/@babel/code-frame/-/code-frame-7.29.7.tgz",
+      "licenseFiles": [
+        "LICENSE"
+      ]
+    },
+    {
+      "name": "@babel/compat-data",
+      "version": "7.29.7",
+      "license": "MIT",
+      "location": "node_modules/@babel/compat-data",
+      "source": "https://registry.npmjs.org/@babel/compat-data/-/compat-data-7.29.7.tgz",
+      "licenseFiles": [
+        "LICENSE"
+      ]
+    },
+    {
+      "name": "@babel/core",
+      "version": "7.29.7",
+      "license": "MIT",
+      "location": "node_modules/@babel/core",
+      "source": "https://registry.npmjs.org/@babel/core/-/core-7.29.7.tgz",
+      "licenseFiles": [
+        "LICENSE"
+      ]
+    },
+    {
+      "name": "@babel/generator",
+      "version": "7.29.12",
+      "license": "MIT",
+      "location": "node_modules/@babel/generator",
+      "source": "https://registry.npmjs.org/@babel/generator/-/generator-7.29.12.tgz",
+      "licenseFiles": [
+        "LICENSE"
+      ]
+    },
+    {
+      "name": "@babel/helper-compilation-targets",
+      "version": "7.29.7",
+      "license": "MIT",
+      "location": "node_modules/@babel/helper-compilation-targets",
+      "source": "https://registry.npmjs.org/@babel/helper-compilation-targets/-/helper-compilation-targets-7.29.7.tgz",
+      "licenseFiles": [
+        "LICENSE"
+      ]
+    },
+    {
+      "name": "@babel/helper-globals",
+      "version": "7.29.7",
+      "license": "MIT",
+      "location": "node_modules/@babel/helper-globals",
+      "source": "https://registry.npmjs.org/@babel/helper-globals/-/helper-globals-7.29.7.tgz",
+      "licenseFiles": [
+        "LICENSE"
+      ]
+    },
+    {
+      "name": "@babel/helper-module-imports",
+      "version": "7.29.7",
+      "license": "MIT",
+      "location": "node_modules/@babel/helper-module-imports",
+      "source": "https://registry.npmjs.org/@babel/helper-module-imports/-/helper-module-imports-7.29.7.tgz",
+      "licenseFiles": [
+        "LICENSE"
+      ]
+    },
+    {
+      "name": "@babel/helper-module-transforms",
+      "version": "7.29.7",
+      "license": "MIT",
+      "location": "node_modules/@babel/helper-module-transforms",
+      "source": "https://registry.npmjs.org/@babel/helper-module-transforms/-/helper-module-transforms-7.29.7.tgz",
+      "licenseFiles": [
+        "LICENSE"
+      ]
+    },
+    {
+      "name": "@babel/helper-plugin-utils",
+      "version": "7.29.7",
+      "license": "MIT",
+      "location": "node_modules/@babel/helper-plugin-utils",
+      "source": "https://registry.npmjs.org/@babel/helper-plugin-utils/-/helper-plugin-utils-7.29.7.tgz",
+      "licenseFiles": [
+        "LICENSE"
+      ]
+    },
+    {
+      "name": "@babel/helper-string-parser",
+      "version": "7.29.11",
+      "license": "MIT",
+      "location": "node_modules/@babel/helper-string-parser",
+      "source": "https://registry.npmjs.org/@babel/helper-string-parser/-/helper-string-parser-7.29.11.tgz",
+      "licenseFiles": [
+        "LICENSE"
+      ]
+    },
+    {
+      "name": "@babel/helper-validator-identifier",
+      "version": "7.29.7",
+      "license": "MIT",
+      "location": "node_modules/@babel/helper-validator-identifier",
+      "source": "https://registry.npmjs.org/@babel/helper-validator-identifier/-/helper-validator-identifier-7.29.7.tgz",
+      "licenseFiles": [
+        "LICENSE"
+      ]
+    },
+    {
+      "name": "@babel/helper-validator-option",
+      "version": "7.29.7",
+      "license": "MIT",
+      "location": "node_modules/@babel/helper-validator-option",
+      "source": "https://registry.npmjs.org/@babel/helper-validator-option/-/helper-validator-option-7.29.7.tgz",
+      "licenseFiles": [
+        "LICENSE"
+      ]
+    },
+    {
+      "name": "@babel/helpers",
+      "version": "7.29.10",
+      "license": "MIT",
+      "location": "node_modules/@babel/helpers",
+      "source": "https://registry.npmjs.org/@babel/helpers/-/helpers-7.29.10.tgz",
+      "licenseFiles": [
+        "LICENSE"
+      ]
+    },
+    {
+      "name": "@babel/parser",
+      "version": "7.29.12",
+      "license": "MIT",
+      "location": "node_modules/@babel/parser",
+      "source": "https://registry.npmjs.org/@babel/parser/-/parser-7.29.12.tgz",
+      "licenseFiles": [
+        "LICENSE"
+      ]
+    },
+    {
+      "name": "@babel/plugin-transform-arrow-functions",
+      "version": "7.29.7",
+      "license": "MIT",
+      "location": "node_modules/@babel/plugin-transform-arrow-functions",
+      "source": "https://registry.npmjs.org/@babel/plugin-transform-arrow-functions/-/plugin-transform-arrow-functions-7.29.7.tgz",
+      "licenseFiles": [
+        "LICENSE"
+      ]
+    },
+    {
+      "name": "@babel/plugin-transform-react-jsx-self",
+      "version": "7.29.7",
+      "license": "MIT",
+      "location": "node_modules/@babel/plugin-transform-react-jsx-self",
+      "source": "https://registry.npmjs.org/@babel/plugin-transform-react-jsx-self/-/plugin-transform-react-jsx-self-7.29.7.tgz",
+      "licenseFiles": [
+        "LICENSE"
+      ]
+    },
+    {
+      "name": "@babel/plugin-transform-react-jsx-source",
+      "version": "7.29.7",
+      "license": "MIT",
+      "location": "node_modules/@babel/plugin-transform-react-jsx-source",
+      "source": "https://registry.npmjs.org/@babel/plugin-transform-react-jsx-source/-/plugin-transform-react-jsx-source-7.29.7.tgz",
+      "licenseFiles": [
+        "LICENSE"
+      ]
+    },
+    {
+      "name": "@babel/template",
+      "version": "7.29.7",
+      "license": "MIT",
+      "location": "node_modules/@babel/template",
+      "source": "https://registry.npmjs.org/@babel/template/-/template-7.29.7.tgz",
+      "licenseFiles": [
+        "LICENSE"
+      ]
+    },
+    {
+      "name": "@babel/traverse",
+      "version": "7.29.12",
+      "license": "MIT",
+      "location": "node_modules/@babel/traverse",
+      "source": "https://registry.npmjs.org/@babel/traverse/-/traverse-7.29.12.tgz",
+      "licenseFiles": [
+        "LICENSE"
+      ]
+    },
+    {
+      "name": "@babel/types",
+      "version": "7.29.11",
+      "license": "MIT",
+      "location": "node_modules/@babel/types",
+      "source": "https://registry.npmjs.org/@babel/types/-/types-7.29.11.tgz",
+      "licenseFiles": [
+        "LICENSE"
+      ]
+    },
+    {
+      "name": "@electron-internal/extract-zip",
+      "version": "1.0.8",
+      "license": "MIT",
+      "location": "node_modules/@electron-internal/extract-zip",
+      "source": "https://registry.npmjs.org/@electron-internal/extract-zip/-/extract-zip-1.0.8.tgz",
+      "licenseFiles": [
+        "LICENSE"
+      ]
+    },
+    {
+      "name": "@electron/get",
+      "version": "5.1.0",
+      "license": "MIT",
+      "location": "node_modules/@electron/get",
+      "source": "https://registry.npmjs.org/@electron/get/-/get-5.1.0.tgz",
+      "licenseFiles": [
+        "LICENSE"
+      ]
+    },
+    {
+      "name": "semver",
+      "version": "7.8.5",
+      "license": "ISC",
+      "location": "node_modules/@electron/get/node_modules/semver",
+      "source": "https://registry.npmjs.org/semver/-/semver-7.8.5.tgz",
+      "licenseFiles": [
+        "LICENSE"
+      ]
+    },
+    {
+      "name": "@esbuild/win32-x64",
+      "version": "0.25.12",
+      "license": "MIT",
+      "location": "node_modules/@esbuild/win32-x64",
+      "source": "https://registry.npmjs.org/@esbuild/win32-x64/-/win32-x64-0.25.12.tgz",
+      "licenseFiles": []
+    },
+    {
+      "name": "@jridgewell/gen-mapping",
+      "version": "0.3.13",
+      "license": "MIT",
+      "location": "node_modules/@jridgewell/gen-mapping",
+      "source": "https://registry.npmjs.org/@jridgewell/gen-mapping/-/gen-mapping-0.3.13.tgz",
+      "licenseFiles": [
+        "LICENSE"
+      ]
+    },
+    {
+      "name": "@jridgewell/remapping",
+      "version": "2.3.5",
+      "license": "MIT",
+      "location": "node_modules/@jridgewell/remapping",
+      "source": "https://registry.npmjs.org/@jridgewell/remapping/-/remapping-2.3.5.tgz",
+      "licenseFiles": [
+        "LICENSE"
+      ]
+    },
+    {
+      "name": "@jridgewell/resolve-uri",
+      "version": "3.1.2",
+      "license": "MIT",
+      "location": "node_modules/@jridgewell/resolve-uri",
+      "source": "https://registry.npmjs.org/@jridgewell/resolve-uri/-/resolve-uri-3.1.2.tgz",
+      "licenseFiles": [
+        "LICENSE"
+      ]
+    },
+    {
+      "name": "@jridgewell/sourcemap-codec",
+      "version": "1.6.0",
+      "license": "MIT",
+      "location": "node_modules/@jridgewell/sourcemap-codec",
+      "source": "https://registry.npmjs.org/@jridgewell/sourcemap-codec/-/sourcemap-codec-1.6.0.tgz",
+      "licenseFiles": [
+        "LICENSE"
+      ]
+    },
+    {
+      "name": "@jridgewell/trace-mapping",
+      "version": "0.3.31",
+      "license": "MIT",
+      "location": "node_modules/@jridgewell/trace-mapping",
+      "source": "https://registry.npmjs.org/@jridgewell/trace-mapping/-/trace-mapping-0.3.31.tgz",
+      "licenseFiles": [
+        "LICENSE"
+      ]
+    },
+    {
+      "name": "@rolldown/pluginutils",
+      "version": "1.0.0-beta.38",
+      "license": "MIT",
+      "location": "node_modules/@rolldown/pluginutils",
+      "source": "https://registry.npmjs.org/@rolldown/pluginutils/-/pluginutils-1.0.0-beta.38.tgz",
+      "licenseFiles": [
+        "LICENSE"
+      ]
+    },
+    {
+      "name": "@rollup/rollup-win32-x64-gnu",
+      "version": "4.66.0",
+      "license": "MIT",
+      "location": "node_modules/@rollup/rollup-win32-x64-gnu",
+      "source": "https://registry.npmjs.org/@rollup/rollup-win32-x64-gnu/-/rollup-win32-x64-gnu-4.66.0.tgz",
+      "licenseFiles": []
+    },
+    {
+      "name": "@rollup/rollup-win32-x64-msvc",
+      "version": "4.66.0",
+      "license": "MIT",
+      "location": "node_modules/@rollup/rollup-win32-x64-msvc",
+      "source": "https://registry.npmjs.org/@rollup/rollup-win32-x64-msvc/-/rollup-win32-x64-msvc-4.66.0.tgz",
+      "licenseFiles": []
+    },
+    {
+      "name": "@types/babel__core",
+      "version": "7.20.5",
+      "license": "MIT",
+      "location": "node_modules/@types/babel__core",
+      "source": "https://registry.npmjs.org/@types/babel__core/-/babel__core-7.20.5.tgz",
+      "licenseFiles": [
+        "LICENSE"
+      ]
+    },
+    {
+      "name": "@types/babel__generator",
+      "version": "7.27.0",
+      "license": "MIT",
+      "location": "node_modules/@types/babel__generator",
+      "source": "https://registry.npmjs.org/@types/babel__generator/-/babel__generator-7.27.0.tgz",
+      "licenseFiles": [
+        "LICENSE"
+      ]
+    },
+    {
+      "name": "@types/babel__template",
+      "version": "7.4.4",
+      "license": "MIT",
+      "location": "node_modules/@types/babel__template",
+      "source": "https://registry.npmjs.org/@types/babel__template/-/babel__template-7.4.4.tgz",
+      "licenseFiles": [
+        "LICENSE"
+      ]
+    },
+    {
+      "name": "@types/babel__traverse",
+      "version": "7.28.0",
+      "license": "MIT",
+      "location": "node_modules/@types/babel__traverse",
+      "source": "https://registry.npmjs.org/@types/babel__traverse/-/babel__traverse-7.28.0.tgz",
+      "licenseFiles": [
+        "LICENSE"
+      ]
+    },
+    {
+      "name": "@types/estree",
+      "version": "1.0.9",
+      "license": "MIT",
+      "location": "node_modules/@types/estree",
+      "source": "https://registry.npmjs.org/@types/estree/-/estree-1.0.9.tgz",
+      "licenseFiles": [
+        "LICENSE"
+      ]
+    },
+    {
+      "name": "@types/node",
+      "version": "24.10.0",
+      "license": "MIT",
+      "location": "node_modules/@types/node",
+      "source": "https://registry.npmjs.org/@types/node/-/node-24.10.0.tgz",
+      "licenseFiles": [
+        "LICENSE"
+      ]
+    },
+    {
+      "name": "@types/react",
+      "version": "19.3.0",
+      "license": "MIT",
+      "location": "node_modules/@types/react",
+      "source": "https://registry.npmjs.org/@types/react/-/react-19.3.0.tgz",
+      "licenseFiles": [
+        "LICENSE"
+      ]
+    },
+    {
+      "name": "@types/react-dom",
+      "version": "19.3.0",
+      "license": "MIT",
+      "location": "node_modules/@types/react-dom",
+      "source": "https://registry.npmjs.org/@types/react-dom/-/react-dom-19.3.0.tgz",
+      "licenseFiles": [
+        "LICENSE"
+      ]
+    },
+    {
+      "name": "@vitejs/plugin-react",
+      "version": "5.0.4",
+      "license": "MIT",
+      "location": "node_modules/@vitejs/plugin-react",
+      "source": "https://registry.npmjs.org/@vitejs/plugin-react/-/plugin-react-5.0.4.tgz",
+      "licenseFiles": [
+        "LICENSE"
+      ]
+    },
+    {
+      "name": "baseline-browser-mapping",
+      "version": "2.11.34",
+      "license": "Apache-2.0",
+      "location": "node_modules/baseline-browser-mapping",
+      "source": "https://registry.npmjs.org/baseline-browser-mapping/-/baseline-browser-mapping-2.11.34.tgz",
+      "licenseFiles": [
+        "LICENSE.txt"
+      ]
+    },
+    {
+      "name": "browserslist",
+      "version": "4.29.5",
+      "license": "MIT",
+      "location": "node_modules/browserslist",
+      "source": "https://registry.npmjs.org/browserslist/-/browserslist-4.29.5.tgz",
+      "licenseFiles": [
+        "LICENSE"
+      ]
+    },
+    {
+      "name": "cac",
+      "version": "6.7.14",
+      "license": "MIT",
+      "location": "node_modules/cac",
+      "source": "https://registry.npmjs.org/cac/-/cac-6.7.14.tgz",
+      "licenseFiles": [
+        "LICENSE"
+      ]
+    },
+    {
+      "name": "caniuse-lite",
+      "version": "1.0.30001820",
+      "license": "CC-BY-4.0",
+      "location": "node_modules/caniuse-lite",
+      "source": "https://registry.npmjs.org/caniuse-lite/-/caniuse-lite-1.0.30001820.tgz",
+      "licenseFiles": [
+        "LICENSE"
+      ]
+    },
+    {
+      "name": "convert-source-map",
+      "version": "2.0.0",
+      "license": "MIT",
+      "location": "node_modules/convert-source-map",
+      "source": "https://registry.npmjs.org/convert-source-map/-/convert-source-map-2.0.0.tgz",
+      "licenseFiles": [
+        "LICENSE"
+      ]
+    },
+    {
+      "name": "csstype",
+      "version": "3.2.3",
+      "license": "MIT",
+      "location": "node_modules/csstype",
+      "source": "https://registry.npmjs.org/csstype/-/csstype-3.2.3.tgz",
+      "licenseFiles": [
+        "LICENSE"
+      ]
+    },
+    {
+      "name": "debug",
+      "version": "4.4.3",
+      "license": "MIT",
+      "location": "node_modules/debug",
+      "source": "https://registry.npmjs.org/debug/-/debug-4.4.3.tgz",
+      "licenseFiles": [
+        "LICENSE"
+      ]
+    },
+    {
+      "name": "electron",
+      "version": "45.1.0",
+      "license": "MIT",
+      "location": "node_modules/electron",
+      "source": "https://registry.npmjs.org/electron/-/electron-45.1.0.tgz",
+      "licenseFiles": [
+        "LICENSE"
+      ]
+    },
+    {
+      "name": "electron-to-chromium",
+      "version": "1.5.468",
+      "license": "ISC",
+      "location": "node_modules/electron-to-chromium",
+      "source": "https://registry.npmjs.org/electron-to-chromium/-/electron-to-chromium-1.5.468.tgz",
+      "licenseFiles": [
+        "LICENSE"
+      ]
+    },
+    {
+      "name": "electron-vite",
+      "version": "5.0.0",
+      "license": "MIT",
+      "location": "node_modules/electron-vite",
+      "source": "https://registry.npmjs.org/electron-vite/-/electron-vite-5.0.0.tgz",
+      "licenseFiles": [
+        "LICENSE"
+      ]
+    },
+    {
+      "name": "env-paths",
+      "version": "3.0.0",
+      "license": "MIT",
+      "location": "node_modules/env-paths",
+      "source": "https://registry.npmjs.org/env-paths/-/env-paths-3.0.0.tgz",
+      "licenseFiles": [
+        "license"
+      ]
+    },
+    {
+      "name": "esbuild",
+      "version": "0.25.12",
+      "license": "MIT",
+      "location": "node_modules/esbuild",
+      "source": "https://registry.npmjs.org/esbuild/-/esbuild-0.25.12.tgz",
+      "licenseFiles": [
+        "LICENSE.md"
+      ]
+    },
+    {
+      "name": "escalade",
+      "version": "3.2.0",
+      "license": "MIT",
+      "location": "node_modules/escalade",
+      "source": "https://registry.npmjs.org/escalade/-/escalade-3.2.0.tgz",
+      "licenseFiles": [
+        "license"
+      ]
+    },
+    {
+      "name": "fdir",
+      "version": "6.5.0",
+      "license": "MIT",
+      "location": "node_modules/fdir",
+      "source": "https://registry.npmjs.org/fdir/-/fdir-6.5.0.tgz",
+      "licenseFiles": [
+        "LICENSE"
+      ]
+    },
+    {
+      "name": "gensync",
+      "version": "1.0.0-beta.2",
+      "license": "MIT",
+      "location": "node_modules/gensync",
+      "source": "https://registry.npmjs.org/gensync/-/gensync-1.0.0-beta.2.tgz",
+      "licenseFiles": [
+        "LICENSE"
+      ]
+    },
+    {
+      "name": "graceful-fs",
+      "version": "4.2.11",
+      "license": "ISC",
+      "location": "node_modules/graceful-fs",
+      "source": "https://registry.npmjs.org/graceful-fs/-/graceful-fs-4.2.11.tgz",
+      "licenseFiles": [
+        "LICENSE"
+      ]
+    },
+    {
+      "name": "js-tokens",
+      "version": "4.0.0",
+      "license": "MIT",
+      "location": "node_modules/js-tokens",
+      "source": "https://registry.npmjs.org/js-tokens/-/js-tokens-4.0.0.tgz",
+      "licenseFiles": [
+        "LICENSE"
+      ]
+    },
+    {
+      "name": "jsesc",
+      "version": "3.1.0",
+      "license": "MIT",
+      "location": "node_modules/jsesc",
+      "source": "https://registry.npmjs.org/jsesc/-/jsesc-3.1.0.tgz",
+      "licenseFiles": []
+    },
+    {
+      "name": "json5",
+      "version": "2.2.3",
+      "license": "MIT",
+      "location": "node_modules/json5",
+      "source": "https://registry.npmjs.org/json5/-/json5-2.2.3.tgz",
+      "licenseFiles": [
+        "LICENSE.md"
+      ]
+    },
+    {
+      "name": "lru-cache",
+      "version": "5.1.1",
+      "license": "ISC",
+      "location": "node_modules/lru-cache",
+      "source": "https://registry.npmjs.org/lru-cache/-/lru-cache-5.1.1.tgz",
+      "licenseFiles": [
+        "LICENSE"
+      ]
+    },
+    {
+      "name": "magic-string",
+      "version": "0.30.21",
+      "license": "MIT",
+      "location": "node_modules/magic-string",
+      "source": "https://registry.npmjs.org/magic-string/-/magic-string-0.30.21.tgz",
+      "licenseFiles": [
+        "LICENSE"
+      ]
+    },
+    {
+      "name": "ms",
+      "version": "2.1.3",
+      "license": "MIT",
+      "location": "node_modules/ms",
+      "source": "https://registry.npmjs.org/ms/-/ms-2.1.3.tgz",
+      "licenseFiles": [
+        "license.md"
+      ]
+    },
+    {
+      "name": "nanoid",
+      "version": "3.3.20",
+      "license": "MIT",
+      "location": "node_modules/nanoid",
+      "source": "https://registry.npmjs.org/nanoid/-/nanoid-3.3.20.tgz",
+      "licenseFiles": [
+        "LICENSE"
+      ]
+    },
+    {
+      "name": "node-releases",
+      "version": "2.0.61",
+      "license": "MIT",
+      "location": "node_modules/node-releases",
+      "source": "https://registry.npmjs.org/node-releases/-/node-releases-2.0.61.tgz",
+      "licenseFiles": [
+        "LICENSE"
+      ]
+    },
+    {
+      "name": "picocolors",
+      "version": "1.1.1",
+      "license": "ISC",
+      "location": "node_modules/picocolors",
+      "source": "https://registry.npmjs.org/picocolors/-/picocolors-1.1.1.tgz",
+      "licenseFiles": [
+        "LICENSE"
+      ]
+    },
+    {
+      "name": "picomatch",
+      "version": "4.0.7",
+      "license": "MIT",
+      "location": "node_modules/picomatch",
+      "source": "https://registry.npmjs.org/picomatch/-/picomatch-4.0.7.tgz",
+      "licenseFiles": [
+        "LICENSE"
+      ]
+    },
+    {
+      "name": "postcss",
+      "version": "8.5.32",
+      "license": "MIT",
+      "location": "node_modules/postcss",
+      "source": "https://registry.npmjs.org/postcss/-/postcss-8.5.32.tgz",
+      "licenseFiles": [
+        "LICENSE"
+      ]
+    },
+    {
+      "name": "progress",
+      "version": "2.0.3",
+      "license": "MIT",
+      "location": "node_modules/progress",
+      "source": "https://registry.npmjs.org/progress/-/progress-2.0.3.tgz",
+      "licenseFiles": [
+        "LICENSE"
+      ]
+    },
+    {
+      "name": "react",
+      "version": "19.3.1",
+      "license": "MIT",
+      "location": "node_modules/react",
+      "source": "https://registry.npmjs.org/react/-/react-19.3.1.tgz",
+      "licenseFiles": [
+        "LICENSE"
+      ]
+    },
+    {
+      "name": "react-dom",
+      "version": "19.3.1",
+      "license": "MIT",
+      "location": "node_modules/react-dom",
+      "source": "https://registry.npmjs.org/react-dom/-/react-dom-19.3.1.tgz",
+      "licenseFiles": [
+        "LICENSE"
+      ]
+    },
+    {
+      "name": "react-refresh",
+      "version": "0.17.0",
+      "license": "MIT",
+      "location": "node_modules/react-refresh",
+      "source": "https://registry.npmjs.org/react-refresh/-/react-refresh-0.17.0.tgz",
+      "licenseFiles": [
+        "LICENSE"
+      ]
+    },
+    {
+      "name": "rollup",
+      "version": "4.66.0",
+      "license": "MIT",
+      "location": "node_modules/rollup",
+      "source": "https://registry.npmjs.org/rollup/-/rollup-4.66.0.tgz",
+      "licenseFiles": [
+        "LICENSE.md"
+      ]
+    },
+    {
+      "name": "scheduler",
+      "version": "0.28.0",
+      "license": "MIT",
+      "location": "node_modules/scheduler",
+      "source": "https://registry.npmjs.org/scheduler/-/scheduler-0.28.0.tgz",
+      "licenseFiles": [
+        "LICENSE"
+      ]
+    },
+    {
+      "name": "semver",
+      "version": "6.3.1",
+      "license": "ISC",
+      "location": "node_modules/semver",
+      "source": "https://registry.npmjs.org/semver/-/semver-6.3.1.tgz",
+      "licenseFiles": [
+        "LICENSE"
+      ]
+    },
+    {
+      "name": "source-map-js",
+      "version": "1.2.2",
+      "license": "BSD-3-Clause",
+      "location": "node_modules/source-map-js",
+      "source": "https://registry.npmjs.org/source-map-js/-/source-map-js-1.2.2.tgz",
+      "licenseFiles": [
+        "LICENSE"
+      ]
+    },
+    {
+      "name": "sumchecker",
+      "version": "3.0.1",
+      "license": "Apache-2.0",
+      "location": "node_modules/sumchecker",
+      "source": "https://registry.npmjs.org/sumchecker/-/sumchecker-3.0.1.tgz",
+      "licenseFiles": [
+        "LICENSE"
+      ]
+    },
+    {
+      "name": "tinyglobby",
+      "version": "0.2.17",
+      "license": "MIT",
+      "location": "node_modules/tinyglobby",
+      "source": "https://registry.npmjs.org/tinyglobby/-/tinyglobby-0.2.17.tgz",
+      "licenseFiles": [
+        "LICENSE"
+      ]
+    },
+    {
+      "name": "typescript",
+      "version": "5.9.3",
+      "license": "Apache-2.0",
+      "location": "node_modules/typescript",
+      "source": "https://registry.npmjs.org/typescript/-/typescript-5.9.3.tgz",
+      "licenseFiles": [
+        "LICENSE.txt"
+      ]
+    },
+    {
+      "name": "undici",
+      "version": "7.30.1",
+      "license": "MIT",
+      "location": "node_modules/undici",
+      "source": "https://registry.npmjs.org/undici/-/undici-7.30.1.tgz",
+      "licenseFiles": [
+        "LICENSE"
+      ]
+    },
+    {
+      "name": "undici-types",
+      "version": "7.16.0",
+      "license": "MIT",
+      "location": "node_modules/undici-types",
+      "source": "https://registry.npmjs.org/undici-types/-/undici-types-7.16.0.tgz",
+      "licenseFiles": [
+        "LICENSE"
+      ]
+    },
+    {
+      "name": "update-browserslist-db",
+      "version": "1.3.4",
+      "license": "MIT",
+      "location": "node_modules/update-browserslist-db",
+      "source": "https://registry.npmjs.org/update-browserslist-db/-/update-browserslist-db-1.3.4.tgz",
+      "licenseFiles": [
+        "LICENSE"
+      ]
+    },
+    {
+      "name": "vite",
+      "version": "7.3.1",
+      "license": "MIT",
+      "location": "node_modules/vite",
+      "source": "https://registry.npmjs.org/vite/-/vite-7.3.1.tgz",
+      "licenseFiles": [
+        "LICENSE.md"
+      ]
+    },
+    {
+      "name": "@esbuild/win32-x64",
+      "version": "0.27.7",
+      "license": "MIT",
+      "location": "node_modules/vite/node_modules/@esbuild/win32-x64",
+      "source": "https://registry.npmjs.org/@esbuild/win32-x64/-/win32-x64-0.27.7.tgz",
+      "licenseFiles": []
+    },
+    {
+      "name": "esbuild",
+      "version": "0.27.7",
+      "license": "MIT",
+      "location": "node_modules/vite/node_modules/esbuild",
+      "source": "https://registry.npmjs.org/esbuild/-/esbuild-0.27.7.tgz",
+      "licenseFiles": [
+        "LICENSE.md"
+      ]
+    },
+    {
+      "name": "yallist",
+      "version": "3.1.1",
+      "license": "ISC",
+      "location": "node_modules/yallist",
+      "source": "https://registry.npmjs.org/yallist/-/yallist-3.1.1.tgz",
+      "licenseFiles": [
+        "LICENSE"
+      ]
+    }
+  ]
+}

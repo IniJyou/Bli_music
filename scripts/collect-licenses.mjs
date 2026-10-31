@@ -34,5 +34,7 @@ const report = {
   platformPackagesNotInstalled, licenses, missingDeclarations: packages.filter(pkg => pkg.license === 'NOT_DECLARED').map(pkg => pkg.name),
   electronRuntimeNotices: runtimeNotices, packages,
 }
-writeFileSync(resolve(root, 'docs/p0_dependency_licenses.json'), JSON.stringify(report, null, 2) + '\n')
+const destination = resolve(root, process.argv[2] ?? 'docs/p0_dependency_licenses.json')
+if (!destination.startsWith(root + sep)) throw new Error('License report must remain in the project')
+writeFileSync(destination, JSON.stringify(report, null, 2) + '\n')
 console.log(JSON.stringify({ installedPackages: packages.length, licenses, missingDeclarations: report.missingDeclarations, electronRuntimeNotices: runtimeNotices }, null, 2))
