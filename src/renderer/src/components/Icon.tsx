@@ -1,6 +1,6 @@
 type IconName = 'arrow' | 'link' | 'play' | 'pause' | 'previous' | 'next' | 'home' |
   'immersive' | 'volume' | 'muted' | 'refresh' | 'close' | 'info' | 'back' | 'music' | 'expand' |
-  'search' | 'plus' | 'up' | 'down' | 'trash' | 'sequence' | 'repeat-all' | 'repeat-one' | 'shuffle' | 'history' | 'list' | 'locate'
+  'search' | 'plus' | 'up' | 'down' | 'trash' | 'sequence' | 'repeat-all' | 'repeat-one' | 'shuffle' | 'history' | 'list' | 'locate' | 'heart' | 'folder' | 'edit' | 'settings' | 'save'
 
 export function Icon({ name, size = 20 }: { name: IconName; size?: number }) {
   const paths: Record<IconName, React.ReactNode> = {
@@ -28,6 +28,11 @@ export function Icon({ name, size = 20 }: { name: IconName; size?: number }) {
     down: <path d="m6 10 6 6 6-6" />,
     trash: <><path d="M4 6h16M9 6V3h6v3M6 6l1 15h10l1-15M10 10v7M14 10v7" /></>,
     locate: <><circle cx="12" cy="12" r="7" /><circle cx="12" cy="12" r="2" /><path d="M12 2v3M12 19v3M2 12h3M19 12h3" /></>,
+    heart: <path d="M12 20 4.5 13A5 5 0 0 1 12 6.5 5 5 0 0 1 19.5 13Z" />,
+    folder: <path d="M3 6h7l2 2h9v12H3ZM3 6V4h7l2 2" />,
+    edit: <><path d="m4 16 12-12 4 4-12 12H4ZM13 7l4 4" /></>,
+    settings: <><circle cx="12" cy="12" r="3" /><path d="m9 3-1 3-3 1-2 3 2 2-1 3 3 3 3-1 2 3 3-1 1-3 3-1 2-3-2-2 1-3-3-3-3 1-2-3Z" /></>,
+    save: <><path d="M4 3h13l4 4v14H3V3ZM7 3v6h10V3M7 21v-7h10v7" /></>,
     sequence: <><path d="M4 5h16M4 11h16M4 17h10m3-3 4 3-4 3" /></>,
     'repeat-all': <><path d="M5 7h14l-3-3m3 3-3 3M19 17H5l3 3m-3-3 3-3M21 10v4M3 10v4" /></>,
     'repeat-one': <><path d="M5 7h14l-3-3m3 3-3 3M19 17H5l3 3m-3-3 3-3M11 10l2-1v6" /></>,

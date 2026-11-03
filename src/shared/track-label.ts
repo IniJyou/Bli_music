@@ -8,7 +8,7 @@ const audioVersion = /^(?:原版|原唱|翻唱|伴奏|纯伴奏|纯音乐|人声
 const placeholder = /^(?:p\s*\d+|part[\s._-]*\d+|\d+|第\s*\d+\s*[pP段集]|未命名|默认标题)$/i
 
 /** Derive presentation without changing source titles or the bvid:cid identity. */
-export function getTrackLabel(video: Video, cid: number): TrackLabel {
+function sourceTrackLabel(video: Video, cid: number): TrackLabel {
   const original = video.title.trim()
   const part = video.pages.find(page => page.cid === cid)?.title.trim() ?? ''
   const label = part.replace(/^[（(【\[]\s*|\s*[）)】\]]$/g, '').trim()
@@ -18,4 +18,10 @@ export function getTrackLabel(video: Video, cid: number): TrackLabel {
     return { title: original, detail: label, fullTitle: `${original}（${label}）` }
   }
   return { title: part, detail: '', fullTitle: part }
+}
+
+export function getTrackLabel(video: Video, cid: number, displayTitle = ''): TrackLabel {
+  const label = sourceTrackLabel(video, cid)
+  const title = displayTitle.trim()
+  return title ? { ...label, title, fullTitle: label.detail ? `${title}（${label.detail}）` : title } : label
 }

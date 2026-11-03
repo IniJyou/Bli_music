@@ -10,7 +10,7 @@ export function formatTime(value: number) {
 }
 
 interface PlayerBarProps {
-  title: string; detail: string; uploader: string; playing: boolean; busy: boolean
+  title: string; detail: string; uploader: string; artist?: string; playing: boolean; busy: boolean
   status: string; position: number; duration: number; volume: number; ready: boolean; seekable: boolean
   immersive: boolean; hasPrevious: boolean; hasNext: boolean; palette: ScenePalette
   onToggle(): void; onSeek(value: number): void; onVolume(value: number): void
@@ -24,7 +24,7 @@ export function PlayerBar(props: PlayerBarProps) {
     <div className="player-identity">
       <button type="button" className="now-playing" onClick={props.onImmersive} title={props.immersive ? '返回聆听页面' : '进入沉浸播放'}>
         <strong data-testid="now-playing-title" title={props.detail ? `${props.title}（${props.detail}）` : props.title}>{props.title || '还没有播放的曲目'}</strong>
-        <span title={[props.detail, props.uploader].filter(Boolean).join(' · ')}>{props.detail && <span className="track-version" data-testid="now-playing-version">{props.detail}</span>}{props.uploader ? `UP 主 · ${props.uploader}` : '无需登录，自在聆听'}</span>
+        <span title={[props.detail, props.artist, props.uploader].filter(Boolean).join(' · ')}>{props.detail && <span className="track-version" data-testid="now-playing-version">{props.detail}</span>}{props.artist ? `歌手 · ${props.artist}` : props.uploader ? `UP 主 · ${props.uploader}` : '无需登录，自在聆听'}</span>
       </button>
       <span className="playback-status" data-testid="playback-status" role="status" title={props.status}><i className={props.playing ? 'status-live' : ''} />{props.status}</span>
     </div>

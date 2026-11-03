@@ -1,12 +1,19 @@
 import { useEffect, useRef, useState } from 'react'
 import type { PlaybackSource, PublicError, Video } from '../../shared/contracts.ts'
-import { emptyQueue, entriesFromVideo, nextEntryId, queueReducer, type QueueAction } from '../../shared/queue.ts'
+import { emptyQueue, entriesFromVideo, nextEntryId, queueReducer, type QueueAction, type QueueEntry, type QueueState } from '../../shared/queue.ts'
+import type { LibraryTrack, PlayerSession } from '../../shared/library.ts'
 import { DEFAULT_VOLUME, normalizeVolume } from '../../shared/volume.ts'
 
 const connectionError: PublicError = { code: 'AUDIO_UNAVAILABLE', message: '音频连接中断，可重试此曲或选择下一首。部分内容可能无法匿名播放。', retryable: true }
 
 /** The audio element stays mounted once; page and search state never own its lifecycle. */
-export function usePlayer() {
+export function usePlayer(callbacks?: { remember(entries: QueueEntry[]): void; played(entry: QueueEntry, epoch: number): void }) {
+  const persistence = useRef(callbacks); persistence.current = callbacks
+  const restored = useRef(false)
+  const sessionEpoch = useRef(0)
+  const positionRef = useRef(0)
+  const saveTimer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined)
+  const seekAfterLoad = useRef(0)
   const audioRef = useRef<HTMLAudioElement>(null)
   const [queue, setQueue] = useState(emptyQueue)
   const state = useRef(queue)
@@ -24,12 +31,52 @@ export function usePlayer() {
   const [error, setError] = useState<PublicError | null>(null)
   const [failures, setFailures] = useState<Record<string, PublicError>>({})
   const operation = useRef(0)
-  const active = useRef<{ op: number; automatic: boolean; attempted: Set<string>; handled: boolean } | null>(null)
+  const active = useRef<{ op: number; automatic: boolean; attempted: Set<string>; handled: boolean; recorded: boolean } | null>(null)
   const history = useRef<string[]>([])
+
+  function setQueueState(next: QueueState) { state.current = next; setQueue(next) }
+  function setPlaybackPosition(value: number) { positionRef.current = value; setPosition(value) }
+  function applySavedSeek() {
+    const audio = audioRef.current
+    if (audio && Number.isFinite(audio.duration) && audio.duration > 0 && seekAfterLoad.current > 0) {
+      audio.currentTime = Math.min(seekAfterLoad.current, Math.max(0, audio.duration - .1))
+      setPlaybackPosition(audio.currentTime); seekAfterLoad.current = 0
+    }
+  }
+  async function flush() {
+    clearTimeout(saveTimer.current)
+    if (!restored.current) return
+    const epoch = sessionEpoch.current
+    const saved: PlayerSession = { queue: state.current, position: positionRef.current }
+    try {
+      const result = await window.mymusic.library.saveSession(saved, epoch)
+      if (!result.ok && epoch === sessionEpoch.current) { setError(result.error); throw new Error(result.error.message) }
+    } catch (failure) {
+      if (epoch !== sessionEpoch.current) return
+      setError({ code: 'STORAGE', message: '播放状态未能保存，请检查本地资料库后重试。', retryable: true }); throw failure
+    }
+  }
+  function saveSoon() { clearTimeout(saveTimer.current); saveTimer.current = setTimeout(() => { void flush().catch(() => {}) }, 250) }
+  function restore(saved: PlayerSession, epoch: number, autoPlay = false) {
+    clearTimeout(saveTimer.current); cancel(); history.current = []
+    sessionEpoch.current = epoch; setQueueState(saved.queue); setPlaybackPosition(saved.position); restored.current = true
+    setStatus(saved.queue.entries.length ? '已恢复上次队列，点击播放继续' : '等待选择歌曲')
+    if (autoPlay && saved.queue.currentId) void playEntry(saved.queue.currentId, false, new Set(), true, saved.position)
+  }
+  function metadata(tracks: LibraryTrack[]) {
+    const byId = new Map(tracks.map(track => [track.id, track]))
+    let changed = false
+    const entries = state.current.entries.map(entry => {
+      const track = byId.get(entry.id)
+      if (!track || (entry.displayTitle === track.displayTitle && entry.artist === track.artist)) return entry
+      changed = true; return { ...entry, displayTitle: track.displayTitle, artist: track.artist }
+    })
+    if (changed) setQueueState({ ...state.current, entries })
+  }
 
   function update(action: QueueAction) {
     const next = queueReducer(state.current, action)
-    state.current = next; setQueue(next)
+    setQueueState(next)
     return next
   }
 
@@ -37,7 +84,7 @@ export function usePlayer() {
     pending.current = true
     const audio = audioRef.current
     if (audio) { audio.pause(); audio.removeAttribute('src'); audio.load() }
-    sourceRef.current = null; setSource(null); setPosition(0); setDuration(0); setPlaying(false)
+    sourceRef.current = null; seekAfterLoad.current = 0; setSource(null); setPlaybackPosition(0); setDuration(0); setPlaying(false)
   }
 
   function cancel() {
@@ -51,7 +98,9 @@ export function usePlayer() {
     context.handled = true
     const id = state.current.currentId
     if (id) { setFailures(previous => ({ ...previous, [id]: failure })); context.attempted.add(id) }
-    clearAudio(); pending.current = false; setBusy(false); setStatus('此曲暂时无法播放'); setError(failure)
+    const checkpoint = positionRef.current
+    clearAudio(); if (!context.automatic) setPlaybackPosition(checkpoint)
+    pending.current = false; setBusy(false); setStatus('此曲暂时无法播放'); setError(failure)
     if (context.automatic) {
       const next = nextEntryId(state.current, 1, false, context.attempted)
       if (next) await playEntry(next, true, context.attempted)
@@ -67,15 +116,15 @@ export function usePlayer() {
     if (remember && previous && previous !== id) history.current.push(previous)
     if (history.current.length > 500) history.current.shift()
     const op = ++operation.current
-    active.current = { op, automatic, attempted, handled: false }
+    active.current = { op, automatic, attempted, handled: false, recorded: false }
     clearAudio(); update({ type: 'select', id }); setBusy(true); setError(null); setStatus('正在连接音源…')
+    setPlaybackPosition(startAt); seekAfterLoad.current = startAt
     try {
       const result = await window.mymusic.prepare({ bvid: entry.video.bvid, cid: entry.cid })
       if (op !== operation.current) return
       if (!result.ok) { await failPlayback(result.error, op); return }
       sourceRef.current = result.value; setSource(result.value)
       audio.src = result.value.url; audio.volume = volumeRef.current / 100
-      if (startAt > 0) audio.currentTime = Math.min(startAt, Math.max(0, result.value.duration - .1))
       setFailures(previous => { const copy = { ...previous }; delete copy[id]; return copy })
       if (autoplay) await audio.play()
       if (op !== operation.current) return
@@ -87,13 +136,23 @@ export function usePlayer() {
   }
 
   function enqueue(video: Video, cids: number[], autoplay = false) {
-    const wanted = entriesFromVideo(video, cids)
+    return enqueueEntries(entriesFromVideo(video, cids), autoplay)
+  }
+  function enqueueEntries(wanted: QueueEntry[], autoplay = false) {
     const before = state.current.entries.length
     const next = update({ type: 'append', entries: wanted })
     const added = next.entries.length - before
     const target = wanted.find(entry => next.entries.some(item => item.id === entry.id))
+    persistence.current?.remember(wanted.filter(entry => next.entries.some(item => item.id === entry.id)))
+    if (!before && !autoplay) setStatus('已加入队列，点击播放开始')
     if (autoplay && target) void playEntry(target.id)
     return { added, skipped: wanted.length - added }
+  }
+  function playList(entries: QueueEntry[]) {
+    const list = queueReducer(emptyQueue, { type: 'append', entries }).entries
+    if (!list.length) return
+    cancel(); history.current = []; setQueueState({ ...state.current, entries: list, currentId: list[0]!.id })
+    persistence.current?.remember(list); void playEntry(list[0]!.id)
   }
 
   async function toggle() {
@@ -103,7 +162,7 @@ export function usePlayer() {
     if (!audio.paused) audio.pause()
     else if (sourceRef.current && !audio.error) {
       try { await audio.play() } catch { setError(connectionError); setStatus('未能开始播放，请重试此曲') }
-    } else await playEntry(id)
+    } else await playEntry(id, false, new Set(), true, positionRef.current)
   }
 
   function skip(direction: -1 | 1, ended = false) {
@@ -141,33 +200,41 @@ export function usePlayer() {
 
   function seek(value: number) {
     const audio = audioRef.current
-    if (audio && Number.isFinite(audio.duration)) { audio.currentTime = Math.min(Math.max(0, value), audio.duration); setPosition(audio.currentTime) }
+    if (audio && Number.isFinite(audio.duration)) { audio.currentTime = Math.min(Math.max(0, value), audio.duration); setPlaybackPosition(audio.currentTime); saveSoon() }
   }
 
   function refresh() {
     const id = state.current.currentId
-    if (id) void playEntry(id, false, new Set(), true, audioRef.current?.currentTime ?? 0)
+    if (id) void playEntry(id, false, new Set(), true, sourceRef.current ? audioRef.current?.currentTime ?? 0 : positionRef.current)
   }
 
   useEffect(() => {
     const audio = audioRef.current
     if (audio) audio.volume = volumeRef.current / 100
-    return () => { operation.current++; if (audio) { audio.pause(); audio.removeAttribute('src'); audio.load() } }
+    const timer = setInterval(() => { if (restored.current) void flush().catch(() => {}) }, 5000)
+    return () => { operation.current++; clearInterval(timer); clearTimeout(saveTimer.current); if (audio) { audio.pause(); audio.removeAttribute('src'); audio.load() } }
   }, [])
+  useEffect(() => { if (restored.current) saveSoon() }, [queue])
 
   const entry = queue.entries.find(item => item.id === queue.currentId) ?? null
   return {
     audioRef, queue, entry, source, busy, playing, status, position, duration, volume, error, failures,
-    setError, enqueue, playEntry, toggle, skip, remove, clearQueue, refresh, seek, changeVolume, toggleMute,
+    setError, enqueue, enqueueEntries, playList, playEntry, toggle, skip, remove, clearQueue, refresh, seek, changeVolume, toggleMute,
+    restore, metadata, flush, setEpoch: (epoch: number) => { sessionEpoch.current = epoch },
     move: (id: string, offset: -1 | 1) => update({ type: 'move', id, offset }),
     mode: () => { const values = ['sequence', 'repeat-all', 'repeat-one', 'shuffle'] as const; update({ type: 'mode', mode: values[(values.indexOf(state.current.mode) + 1) % values.length]! }) },
     hasPrevious: Boolean(nextEntryId(queue, -1)) || (queue.mode === 'shuffle' && history.current.length > 0),
     hasNext: Boolean(nextEntryId(queue, 1)),
     audioEvents: {
-      onTimeUpdate: () => setPosition(audioRef.current?.currentTime ?? 0),
-      onDurationChange: () => { const value = audioRef.current?.duration; setDuration(value && Number.isFinite(value) ? value : 0) },
-      onPlaying: () => { setPlaying(true); if (!active.current?.handled) setStatus('正在播放') },
-      onPause: () => { setPlaying(false); if (!pending.current && audioRef.current?.getAttribute('src') && !audioRef.current?.ended) setStatus('已暂停') },
+      onTimeUpdate: () => { if (sourceRef.current && !pending.current && !seekAfterLoad.current) setPlaybackPosition(audioRef.current?.currentTime ?? 0) },
+      onLoadedMetadata: applySavedSeek,
+      onDurationChange: () => { const value = audioRef.current?.duration; setDuration(value && Number.isFinite(value) ? value : 0); applySavedSeek() },
+      onPlaying: () => {
+        setPlaying(true); if (!active.current?.handled) setStatus('正在播放')
+        const current = active.current, entry = state.current.entries.find(entry => entry.id === state.current.currentId)
+        if (current && !current.handled && !current.recorded && entry) { current.recorded = true; persistence.current?.played(entry, sessionEpoch.current) }
+      },
+      onPause: () => { setPlaying(false); if (!pending.current && audioRef.current?.getAttribute('src') && !audioRef.current?.ended) { setStatus('已暂停'); setPlaybackPosition(audioRef.current?.currentTime ?? positionRef.current); saveSoon() } },
       onWaiting: () => { if (sourceRef.current) setStatus('正在缓冲…') },
       onEnded: () => { setPlaying(false); skip(1, true) },
       onError: () => { if (audioRef.current?.getAttribute('src') && active.current) void failPlayback(connectionError, active.current.op) },
