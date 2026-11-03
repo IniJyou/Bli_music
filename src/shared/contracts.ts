@@ -1,5 +1,5 @@
 export type ErrorCode = 'INVALID_INPUT' | 'NOT_FOUND' | 'LOGIN_REQUIRED' |
-  'ACCESS_RESTRICTED' | 'NETWORK' | 'UPSTREAM' | 'AUDIO_UNAVAILABLE' | 'INVALID_PAGE'
+  'ACCESS_RESTRICTED' | 'NETWORK' | 'UPSTREAM' | 'AUDIO_UNAVAILABLE' | 'INVALID_PAGE' | 'STORAGE'
 
 export interface PublicError { code: ErrorCode; message: string; retryable: boolean }
 export type Result<T> = { ok: true; value: T } | { ok: false; error: PublicError }
@@ -19,6 +19,7 @@ export interface SearchItem { bvid: string; title: string; uploader: string; dur
 export interface SearchPage { keyword: string; page: number; pages: number; total: number; items: SearchItem[] }
 export type Scene = 'blue' | 'orange' | 'yellow'
 export interface MusicBridge {
+  library: import('./library.ts').LibraryBridge
   inspect(input: string): Promise<Result<Video>>
   prepare(selection: Selection): Promise<Result<PlaybackSource>>
   search(request: SearchRequest): Promise<Result<SearchPage>>

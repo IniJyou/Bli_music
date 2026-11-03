@@ -6,7 +6,7 @@ export const modes: PlaybackMode[] = ['sequence', 'repeat-all', 'repeat-one', 's
 export const modeNames: Record<PlaybackMode, string> = {
   sequence: '顺序播放', 'repeat-all': '列表循环', 'repeat-one': '单曲循环', shuffle: '随机播放',
 }
-export interface QueueEntry { id: string; video: Video; cid: number }
+export interface QueueEntry { id: string; video: Video; cid: number; displayTitle?: string; artist?: string }
 export interface QueueState { entries: QueueEntry[]; currentId: string | null; mode: PlaybackMode }
 export type QueueAction =
   | { type: 'append'; entries: QueueEntry[] }

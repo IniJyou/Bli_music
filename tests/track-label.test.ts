@@ -46,3 +46,10 @@ test('display naming preserves original metadata and distinct queue identities',
   assert.deepEqual(entries.map(entry => entry.id), ['BV1CGxAzwECr:33406650787', 'BV1CGxAzwECr:33406716081'])
   assert.deepEqual(entries.map(entry => entry.video.pages.find(page => page.cid === entry.cid)!.title), ['日语版', '英语版'])
 })
+
+test('a manual song name takes precedence while retaining the language version and source metadata', () => {
+  const before = structuredClone(video)
+  assert.deepEqual(getTrackLabel(video, video.pages[1]!.cid, 'Chronicle A'), { title: 'Chronicle A', detail: '英语版', fullTitle: 'Chronicle A（英语版）' })
+  assert.deepEqual(video, before)
+  assert.deepEqual(getTrackLabel(video, video.pages[1]!.cid, ''), getTrackLabel(video, video.pages[1]!.cid))
+})

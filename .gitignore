@@ -5,6 +5,7 @@ release/
 .cache/
 .downloads/
 .artifacts/
+.data/
 *.log
 .env
 .env.*

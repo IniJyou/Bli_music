@@ -16,7 +16,9 @@ delete env.ELECTRON_RUN_AS_NODE
 const mode = process.argv[2]
 let executable = process.execPath
 let args
-if (mode === 'build' || mode === 'dev') {
+if (mode === 'smoke-p2') {
+  args = [resolve(root, 'scripts/smoke-p2.mjs')]
+} else if (mode === 'build' || mode === 'dev') {
   args = [resolve(root, 'node_modules/electron-vite/bin/electron-vite.js'), mode]
 } else if (mode === 'start' || mode === 'start-software' || mode === 'smoke') {
   const runtime = readFileSync(resolve(root, 'node_modules/electron/path.txt'), 'utf8').trim()
