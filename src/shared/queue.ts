@@ -1,4 +1,5 @@
 import type { Video } from './contracts.ts'
+import type { LocalAudio, LocalAudioId } from './local-audio.ts'
 
 export const MAX_QUEUE = 500
 export type PlaybackMode = 'sequence' | 'repeat-all' | 'repeat-one' | 'shuffle'
@@ -6,7 +7,10 @@ export const modes: PlaybackMode[] = ['sequence', 'repeat-all', 'repeat-one', 's
 export const modeNames: Record<PlaybackMode, string> = {
   sequence: '顺序播放', 'repeat-all': '列表循环', 'repeat-one': '单曲循环', shuffle: '随机播放',
 }
-export interface QueueEntry { id: string; video: Video; cid: number; displayTitle?: string; artist?: string }
+interface TrackEdits { displayTitle?: string; artist?: string }
+export interface VideoEntry extends TrackEdits { id: string; video: Video; cid: number; local?: never }
+export interface LocalEntry extends TrackEdits { id: LocalAudioId; local: LocalAudio; video?: never; cid?: never }
+export type QueueEntry = VideoEntry | LocalEntry
 export interface QueueState { entries: QueueEntry[]; currentId: string | null; mode: PlaybackMode }
 export type QueueAction =
   | { type: 'append'; entries: QueueEntry[] }
@@ -17,11 +21,12 @@ export type QueueAction =
   | { type: 'mode'; mode: PlaybackMode }
 export const emptyQueue: QueueState = { entries: [], currentId: null, mode: 'sequence' }
 
-export function entriesFromVideo(video: Video, cids: number[]): QueueEntry[] {
+export function entriesFromVideo(video: Video, cids: number[]): VideoEntry[] {
   const wanted = new Set(cids)
   return video.pages.filter(page => wanted.has(page.cid)).map(page => ({ id: `${video.bvid}:${page.cid}`, video, cid: page.cid }))
 }
-export function entryPage(entry: QueueEntry) { return entry.video.pages.find(page => page.cid === entry.cid)! }
+export function entryPage(entry: VideoEntry) { return entry.video.pages.find(page => page.cid === entry.cid)! }
+export function entryDuration(entry: QueueEntry) { return entry.local ? entry.local.duration : entryPage(entry).duration }
 
 export function queueReducer(state: QueueState, action: QueueAction): QueueState {
   switch (action.type) {

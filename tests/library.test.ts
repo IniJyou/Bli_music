@@ -4,6 +4,7 @@ import { mkdtempSync, mkdirSync, readFileSync, writeFileSync, existsSync } from 
 import { resolve } from 'node:path'
 import { DatabaseSync } from 'node:sqlite'
 import { LibraryStore } from '../src/main/library-store.ts'
+import { inspectLocalFile, LocalMediaGateway } from '../src/main/local-media.ts'
 import { parseLibraryFile } from '../src/main/library-validation.ts'
 import { entriesFromVideo } from '../src/shared/queue.ts'
 import { defaultPreferences } from '../src/shared/library.ts'
@@ -27,7 +28,7 @@ test('real SQLite reopening restores queue, part identity, edits and settings wi
     const state = store.read()
     assert.equal(state.session.queue.currentId, entries[1]!.id); assert.equal(state.session.position, 42.5)
     assert.equal(state.session.queue.mode, 'shuffle'); assert.equal(state.session.queue.entries[1]!.displayTitle, 'Chronicle A')
-    assert.equal(state.tracks.find(track => track.id === entries[1]!.id)!.video.pages[1]!.title, '英语版')
+    assert.equal(state.tracks.find(track => track.id === entries[1]!.id)!.video?.pages[1]!.title, '英语版')
     assert.equal(state.preferences.scene, 'orange'); assert.equal(state.preferences.autoPlay, false)
     assert.equal(readFileSync(store.filename).subarray(0, 15).toString(), 'SQLite format 3')
     assert.ok(!JSON.stringify(store.exportDocument()).includes('mymusic-media:'))
@@ -195,5 +196,46 @@ test('atomic playlist creation fails cleanly and removing a history entry keeps 
     assert.equal(state.tracks.length, 2); assert.equal(state.tracks.find(track => track.id === entries[0]!.id)!.favorite, true)
     assert.equal(state.tracks.find(track => track.id === entries[0]!.id)!.lastPlayedAt, 0)
     assert.equal(state.session.queue.entries.length, 2)
+  } finally { store.close() }
+})
+
+test('a P2 database keeps its existing queue after migration and only the native selection grants file access', async () => {
+  const directory = mkdtempSync(resolve(output, 'local-migration-'))
+  const database = resolve(directory, 'library.sqlite')
+  const previous = new LibraryStore(directory)
+  previous.saveSession(saved, 0)
+  previous.close()
+  const legacy = new DatabaseSync(database)
+  legacy.exec('DROP TABLE local_files; PRAGMA user_version=1')
+  legacy.close()
+  const store = new LibraryStore(directory)
+  try {
+    assert.equal(store.read().session.queue.currentId, saved.queue.currentId)
+    assert.equal(store.read().session.position, saved.position)
+    const path = resolve(directory, '原文件.wav')
+    const fixtureBytes = Buffer.from('local file permission fixture')
+    writeFileSync(path, fixtureBytes)
+    const selected = await inspectLocalFile(path)
+    const { id } = selected.entry
+    const gateway = new LocalMediaGateway(id => store.localFile(id))
+    const before = store.exportDocument()
+    const localTrack = { ...selected.entry, displayTitle: '手动歌名', artist: '', favorite: true, addedAt: 1, lastPlayedAt: 0, playCount: 0 }
+    const untrusted = { ...before, version: 2, tracks: [...before.tracks, { ...localTrack, local: { ...localTrack.local, path }, path }] }
+    store.importDocument(untrusted, 'merge')
+    await assert.rejects(gateway.prepare(id), { code: 'NOT_FOUND' })
+    assert(!JSON.stringify(store.exportDocument()).includes('path'))
+
+    const list = store.command({ type: 'create-playlist', name: '混合歌单', entries }).playlists[0]!
+    store.importLocalFiles([selected], list.id)
+    assert.deepEqual(store.read().playlists[0]!.trackIds, [...list.trackIds, id])
+    assert.equal(store.read().tracks.find(track => track.id === id)!.displayTitle, '手动歌名')
+    const source = await gateway.prepare(id)
+    const response = await gateway.handle(new Request(source.url, { headers: { Range: 'bytes=-7' } }))
+    assert.equal(response.status, 206)
+    assert.deepEqual(Buffer.from(await response.arrayBuffer()), fixtureBytes.subarray(-7))
+    store.command({ type: 'forget-track', id })
+    assert.deepEqual(readFileSync(path), fixtureBytes)
+    store.importDocument(untrusted, 'merge')
+    assert.equal((await gateway.handle(new Request(source.url))).status, 404)
   } finally { store.close() }
 })

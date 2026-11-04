@@ -2,16 +2,20 @@ import { dialog, shell, type BrowserWindow } from 'electron'
 import { openSync, closeSync, fsyncSync, writeFileSync, renameSync, unlinkSync, existsSync, statSync, readFileSync, mkdirSync } from 'node:fs'
 import { resolve, basename, dirname } from 'node:path'
 import { randomUUID } from 'node:crypto'
-import type { ImportPreview, ImportOutcome, LibraryFile } from '../shared/library.ts'
+import type { ImportPreview, ImportOutcome, LibraryFile, LocalImportOutcome } from '../shared/library.ts'
 import { MAX_IMPORT_BYTES } from '../shared/library.ts'
+import { localAudioTypes, type LocalAudioId } from '../shared/local-audio.ts'
+import { MAX_QUEUE } from '../shared/queue.ts'
 import { BiliError } from './errors.ts'
 import { LibraryStore } from './library-store.ts'
+import { inspectLocalFile, type SelectedAudioFile } from './local-media.ts'
 import * as check from './library-validation.ts'
 
 type Register = (channel: string, action: (value: unknown) => Promise<unknown>) => void
 export interface FileDialogs {
   save(defaultPath: string): Promise<string | null>
   open(defaultPath: string): Promise<string | null>
+  music?(): Promise<string[]>
 }
 export class LibraryService {
   readonly store: LibraryStore
@@ -48,6 +52,24 @@ export class LibraryService {
     try { data = JSON.parse(readFileSync(target, 'utf8').replace(/^\uFEFF/, '')) } catch { check.invalid('无法读取这个 JSON 文件，当前资料库未改动。') }
     return this.preview(check.parseLibraryFile(data), basename(target))
   }
+  async importLocal(playlistId: unknown): Promise<LocalImportOutcome | null> {
+    const id = playlistId === undefined ? undefined : check.string(playlistId, 100)
+    const paths = this.files?.music ? await this.files.music() : (await dialog.showOpenDialog(this.getWindow()!, {
+      title: '导入本地音乐', properties: ['openFile', 'multiSelections'],
+      filters: [{ name: '音频文件', extensions: Object.keys(localAudioTypes) }],
+    })).filePaths
+    if (!paths.length) return null
+    if (paths.length > MAX_QUEUE) check.invalid(`每次最多导入 ${MAX_QUEUE} 首本地音乐。`)
+    const selected = new Map<LocalAudioId, SelectedAudioFile>()
+    const skipped: string[] = []
+    for (const path of paths) {
+      try {
+        const file = await inspectLocalFile(path)
+        selected.set(file.entry.id, file)
+      } catch { skipped.push(basename(path)) }
+    }
+    return { ...this.store.importLocalFiles([...selected.values()], id), skipped }
+  }
   applyImport(value: unknown): ImportOutcome {
     const request = check.object(value)
     if (!this.pending || request.token !== this.pending.token || Date.now() > this.pending.expires) check.invalid('导入预览已失效，请重新选择文件。')
@@ -69,6 +91,7 @@ export class LibraryService {
     storage('library:save-session', value => { const request = check.object(value); this.store.saveSession(request.session, request.epoch) })
     storage('library:export', value => this.exportFile(value))
     storage('library:pick-import', () => this.pickImport())
+    storage('library:import-local', value => this.importLocal(value))
     storage('library:apply-import', value => this.applyImport(value))
     storage('library:backups', () => this.store.backups())
     storage('library:make-backup', () => this.store.makeBackup())

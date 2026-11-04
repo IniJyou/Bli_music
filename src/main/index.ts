@@ -1,24 +1,34 @@
 import { app, BrowserWindow, ipcMain, protocol, session, net, dialog } from 'electron'
-import { mkdirSync } from 'node:fs'
+import { mkdirSync, readdirSync } from 'node:fs'
 import { dirname, resolve, sep } from 'node:path'
 import { fileURLToPath, pathToFileURL } from 'node:url'
 import { BilibiliClient, toPublicError, type Fetcher } from './bilibili.ts'
 import { MediaGateway } from './media.ts'
 import type { Result, Selection } from '../shared/contracts.ts'
-import { runSmoke } from './smoke.ts'
 import iconPath from '../../resources/coffee.ico?asset'
 import { BiliError } from './errors.ts'
 import { LibraryService } from './library-service.ts'
-import { runP2Smoke, type P2Phase } from './smoke-p2.ts'
+import { LocalMediaGateway } from './local-media.ts'
+import { ExternalPlaylistClient } from './external-playlists.ts'
+import { ImportLookupLimiter } from './import-lookups.ts'
+import { DesktopTray } from './desktop-tray.ts'
+import type { P2Phase } from './smoke-p2.ts'
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), '../..')
-if (process.platform === 'win32') app.setAppUserModelId('com.inijyou.blimusic')
+const p4Smoke = process.argv.includes('--p4-smoke')
+if (process.platform === 'win32') app.setAppUserModelId(p4Smoke ? 'com.inijyou.blimusic.p4test' : 'com.inijyou.blimusic')
 const p2Smoke = process.argv.includes('--p2-smoke')
-const smoke = p2Smoke || process.argv.includes('--p1-smoke') || process.argv.includes('--p0-smoke')
+const localSmoke = process.argv.includes('--local-smoke')
+if (p4Smoke && !localSmoke) throw new Error('P4 smoke requires an isolated local profile')
+const librarySmoke = p2Smoke || localSmoke
+const smoke = librarySmoke || process.argv.includes('--p1-smoke') || process.argv.includes('--p0-smoke')
 const testProfile = process.argv.find(value => value.startsWith('--p2-profile='))?.slice(13) ?? ''
 const testPhase = process.argv.find(value => value.startsWith('--p2-phase='))?.slice(11) ?? ''
 if (p2Smoke && (!/^[0-9a-z-]{1,80}$/.test(testProfile) || !['write', 'restore', 'autoplay'].includes(testPhase))) throw new Error('Invalid P2 test profile')
 const p2Directory = resolve(root, '.artifacts/p2', testProfile)
+const localProfile = process.argv.find(value => value.startsWith('--local-profile='))?.slice(16) ?? ''
+if (localSmoke && !/^[0-9a-z-]{1,80}$/.test(localProfile)) throw new Error('Invalid local audio test profile')
+const localDirectory = resolve(root, p4Smoke ? '.artifacts/p4' : '.artifacts/local-audio', localProfile)
 if (process.argv.includes('--software-rendering')) app.disableHardwareAcceleration()
 const runtime = resolve(root, '.cache/runtime', smoke ? `smoke-${process.pid}` : 'player')
 mkdirSync(runtime, { recursive: true })
@@ -37,12 +47,15 @@ app.whenReady().then(async () => {
   // These partitions are in-memory and never import the user's browser cookies.
   const uiSession = session.fromPartition(`mymusic-ui-${process.pid}`, { cache: false })
   const apiSession = session.fromPartition(`mymusic-api-${process.pid}`, { cache: false })
+  if (localSmoke && !p4Smoke) apiSession.webRequest.onBeforeRequest((_details, reply) => reply({ cancel: true }))
   const userAgent = `Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/${process.versions.chrome} Safari/537.36`
   // Electron 45 cancels manual redirects instead of exposing their Location.
   // Node fetch preserves the response so short links and CDN redirects can be
   // validated one hop at a time. Node fetch has no browser cookie jar.
   const fetcher: Fetcher = (url, options) => options?.redirect === 'manual' ? fetch(url, options) : apiSession.fetch(url, options)
   const client = new BilibiliClient(fetcher, userAgent)
+  const externalPlaylists = new ExternalPlaylistClient(fetcher, userAgent)
+  const importLookups = new ImportLookupLimiter()
   const gateway = new MediaGateway(client, fetcher, userAgent)
   const rendererRoot = resolve(root, 'out/renderer')
   const devUrl = process.env.ELECTRON_RENDERER_URL
@@ -57,7 +70,6 @@ app.whenReady().then(async () => {
   }))
   uiSession.setPermissionRequestHandler((_contents, _permission, callback) => callback(false))
   uiSession.setPermissionCheckHandler(() => false)
-  uiSession.protocol.handle('mymusic-media', request => gateway.handle(request))
   uiSession.protocol.handle('mymusic', async request => {
     const url = new URL(request.url)
     if (url.hostname !== 'app') return new Response('Not found', { status: 404 })
@@ -83,11 +95,16 @@ app.whenReady().then(async () => {
   handle('p0:inspect', input => client.inspect(input))
   handle('p0:prepare', input => gateway.prepare(input as Selection))
   handle('music:search', input => client.search(input))
-  const dataDirectory = p2Smoke ? resolve(p2Directory, 'data') : smoke ? resolve(runtime, 'library') : resolve(root, '.data')
+  handle('music:external-playlist', input => externalPlaylists.read(input))
+  handle('music:import-search', input => importLookups.run(250, () => client.search(input)))
+  handle('music:import-inspect', input => importLookups.run(150, () => client.inspect(input)))
+  const testDirectory = localSmoke ? localDirectory : p2Directory
+  const dataDirectory = librarySmoke ? resolve(testDirectory, 'data') : smoke ? resolve(runtime, 'library') : resolve(root, '.data')
   let library: LibraryService | null = null
   try {
-    library = new LibraryService(dataDirectory, () => window, p2Smoke ? {
-      save: async () => resolve(p2Directory, 'transfer.json'), open: async () => resolve(p2Directory, 'transfer.json'),
+    library = new LibraryService(dataDirectory, () => window, librarySmoke ? {
+      save: async () => resolve(testDirectory, 'transfer.json'), open: async () => resolve(testDirectory, 'transfer.json'),
+      music: localSmoke ? async () => readdirSync(resolve(localDirectory, 'samples')).map(name => resolve(localDirectory, 'samples', name)) : undefined,
     } : undefined)
     library.register(handle)
   }
@@ -96,6 +113,9 @@ app.whenReady().then(async () => {
     handle('library:read', async () => { throw new BiliError('STORAGE', '资料库未能打开，原数据已保留。请检查 .data 目录及备份后重试。') })
     handle('library:open-directory', async () => { const { shell } = await import('electron'); await shell.openPath(dataDirectory) })
   }
+  const localMedia = new LocalMediaGateway(id => library?.store.localFile(id) ?? null)
+  handle('music:prepare-local', id => localMedia.prepare(id))
+  uiSession.protocol.handle('mymusic-media', request => new URL(request.url).hostname === 'local' ? localMedia.handle(request) : gateway.handle(request))
   handle('window:appearance', async value => {
     const colors: Record<string, string> = { blue: '#b8cccb', orange: '#ff4f1d', yellow: '#ffcb08' }
     if (typeof value !== 'string' || !Object.hasOwn(colors, value)) throw new BiliError('INVALID_INPUT', '未知场景。')
@@ -126,15 +146,27 @@ app.whenReady().then(async () => {
   window.webContents.on('will-navigate', event => event.preventDefault())
   window.webContents.on('render-process-gone', (_event, details) => console.error('Renderer stopped:', details.reason))
   window.on('closed', () => { clearTimeout(resizeTimer); window = null })
-  let closing = false, allowClose = smoke && !p2Smoke, closeTimer: ReturnType<typeof setTimeout> | undefined
+  let closing = false, exiting = false, allowClose = smoke && !librarySmoke, closeTimer: ReturnType<typeof setTimeout> | undefined
+  let tray: DesktopTray | null = null
+  const exit = () => { exiting = true; window?.close() }
+  if (process.platform === 'win32' && (!smoke || p4Smoke)) {
+    try { tray = new DesktopTray(window, iconPath, exit) }
+    catch (error) { console.error('Tray unavailable:', error instanceof Error ? error.message : 'unknown error') }
+  }
+  app.on('before-quit', () => { exiting = true })
+  ipcMain.on('desktop:playback', (event, value) => {
+    if (isTrusted(event)) tray?.update(value)
+  })
   const finishClose = () => { clearTimeout(closeTimer); allowClose = true; window?.close() }
   const closeFailed = async () => {
     clearTimeout(closeTimer)
     if (!window || !closing) return
+    if (!window.isVisible()) window.show()
     const result = await dialog.showMessageBox(window, { type: 'warning', title: '播放状态尚未保存', message: '数据保存未能完成。', detail: '可以重试或取消退出，继续处理磁盘或资料库问题。选择仍然退出会保留上次成功保存的状态。', buttons: ['重试保存', '取消退出', '仍然退出'], defaultId: 0, cancelId: 1 })
     closing = false
     if (result.response === 2) finishClose()
     else if (result.response === 0) window?.close()
+    else exiting = false
   }
   ipcMain.handle('library:close-ready', (event, saved) => {
     if (!isTrusted(event) || !closing) return
@@ -144,21 +176,25 @@ app.whenReady().then(async () => {
     if (allowClose) return
     event.preventDefault()
     if (closing) return
+    if (tray?.hideOnClose && !exiting) { tray.hide(); return }
     closing = true
     window?.webContents.send('library:before-close')
     closeTimer = setTimeout(() => { void closeFailed() }, 10000)
   })
-  if (p2Smoke) window.webContents.setAudioMuted(true)
+  if (librarySmoke) window.webContents.setAudioMuted(true)
   await window.loadURL(devUrl ?? 'mymusic://app/index.html')
-  if (p2Smoke) {
-    const passed = await runP2Smoke(window, p2Directory, testPhase as P2Phase)
+  if (librarySmoke) {
+    const passed = p4Smoke ? await (await import('./smoke-p4.ts')).runP4Smoke(window, tray, localDirectory, root)
+      : localSmoke
+      ? await (await import('./smoke-local.ts')).runLocalSmoke(window, localDirectory, process.argv.includes('--local-restore'))
+      : await (await import('./smoke-p2.ts')).runP2Smoke(window, p2Directory, testPhase as P2Phase)
     if (!passed) app.exit(1)
-    else window.close()
+    else exit()
   } else if (smoke) {
-    const passed = await runSmoke(window, client, gateway, root)
+    const passed = await (await import('./smoke.ts')).runSmoke(window, client, gateway, root)
     app.exit(passed ? 0 : 1)
   } else { await firstPaint; window?.show() }
-  app.once('will-quit', () => { clearTimeout(closeTimer); library?.store.close() })
+  app.once('will-quit', () => { clearTimeout(closeTimer); tray?.destroy(); library?.store.close() })
 }).catch(error => { console.error('Application startup failed:', error.message); app.exit(1) })
 
 app.on('window-all-closed', () => app.quit())

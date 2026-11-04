@@ -1,4 +1,5 @@
 import type { Video } from './contracts.ts'
+import type { QueueEntry } from './queue.ts'
 
 export interface TrackLabel { title: string; detail: string; fullTitle: string }
 
@@ -24,4 +25,10 @@ export function getTrackLabel(video: Video, cid: number, displayTitle = ''): Tra
   const label = sourceTrackLabel(video, cid)
   const title = displayTitle.trim()
   return title ? { ...label, title, fullTitle: label.detail ? `${title}（${label.detail}）` : title } : label
+}
+
+export function getEntryLabel(entry: QueueEntry): TrackLabel {
+  if (!entry.local) return getTrackLabel(entry.video, entry.cid, entry.displayTitle)
+  const title = entry.displayTitle?.trim() || entry.local.title
+  return { title, detail: '', fullTitle: title }
 }
