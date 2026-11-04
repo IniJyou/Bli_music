@@ -105,7 +105,7 @@ export async function runP2Smoke(window: BrowserWindow, output: string, phase: P
         await click('[data-testid=result-favorite]')
         await wait("document.querySelector('[data-testid=result-favorite]').getAttribute('aria-pressed')==='true'&&!document.querySelector('[data-testid=result-favorite]').disabled")
         const saved = await state(), track = saved.tracks[0]!
-        if (saved.tracks.length !== 1 || !track.favorite || track.video.bvid !== found || track.cid !== track.video.pages.find(page => page.page === 1)?.cid || saved.session.queue.entries.length || track.playCount) throw new Error('Liking a keyword result lost P1 identity or queued/played it')
+        if (saved.tracks.length !== 1 || !track.favorite || track.video?.bvid !== found || track.cid !== track.video.pages.find(page => page.page === 1)?.cid || saved.session.queue.entries.length || track.playCount) throw new Error('Liking a keyword result lost P1 identity or queued/played it')
         await evaluate("document.querySelector('[data-testid=result-favorite]').dispatchEvent(new MouseEvent('dblclick',{bubbles:true}))")
         const idle = await evaluate<boolean>("document.querySelector('audio').paused&&!document.querySelector('audio').getAttribute('src')&&!document.querySelector('[data-testid=import-panel]')")
         if (!idle) throw new Error('The favorite button bubbled into result playback')
@@ -167,7 +167,7 @@ export async function runP2Smoke(window: BrowserWindow, output: string, phase: P
         await fill('[data-testid=library-filter]', ''); await wait("document.querySelectorAll('[data-testid=library-track]').length===2")
         const continuous = await evaluate<boolean>("document.querySelector('audio')===window.__p2audio&&window.__p2audio.src===window.__p2src&&!window.__p2audio.paused")
         const saved = await state(), track = saved.tracks.find(track => track.id === p2)!
-        if (!continuous || track.displayTitle !== 'Chronicle A' || track.artist !== 'Empty old City' || track.video.pages[1]!.title !== '英语版') throw new Error('Edit, search or favorite changed the source or raw title')
+        if (!continuous || track.displayTitle !== 'Chronicle A' || track.artist !== 'Empty old City' || track.video?.pages[1]!.title !== '英语版') throw new Error('Edit, search or favorite changed the source or raw title')
         await capture('library-edited-playing')
         return { decoded, searchFavoritePart: p2, otherPartUnliked: true, sameAudioAndSource: continuous, rawPartTitle: track.video.pages[1]!.title, artist: track.artist }
       })

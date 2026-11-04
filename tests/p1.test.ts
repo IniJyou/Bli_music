@@ -88,8 +88,8 @@ test('queue identity includes both video and page and appending never changes cu
   const current = queueReducer(initial, { type: 'select', id: entries[1]!.id })
   const next = queueReducer(current, { type: 'append', entries })
   assert.equal(next.entries.length, 3); assert.equal(next.currentId, entries[1]!.id)
-  assert.equal(next.entries[0]!.video.title, '原始视频标题')
-  assert.equal(next.entries[0]!.video.uploader, 'UP 主')
+  assert.equal(next.entries[0]!.video?.title, '原始视频标题')
+  assert.equal(next.entries[0]!.video?.uploader, 'UP 主')
 })
 test('queue reordering and removal preserve selected identity and choose a valid paused successor', () => {
   const moved = queueReducer(initial, { type: 'move', id: entries[0]!.id, offset: 1 })

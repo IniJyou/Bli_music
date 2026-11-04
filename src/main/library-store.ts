@@ -4,10 +4,12 @@ import { resolve, basename, dirname } from 'node:path'
 import { randomUUID } from 'node:crypto'
 import { MAX_TRACKS, MAX_PLAYLISTS, defaultPreferences, type LibrarySnapshot, type LibraryTrack, type LibraryFile, type Playlist, type PlayerSession, type BackupInfo } from '../shared/library.ts'
 import type { QueueEntry } from '../shared/queue.ts'
+import type { LocalAudioId } from '../shared/local-audio.ts'
+import type { SelectedAudioFile } from './local-media.ts'
 import { BiliError } from './errors.ts'
 import * as check from './library-validation.ts'
 
-const SCHEMA = 1
+const SCHEMA = 2
 const backupPattern = /^library-\d{13}-[a-f0-9-]{36}\.sqlite$/
 
 export class LibraryStore {
@@ -23,7 +25,7 @@ export class LibraryStore {
     this.db = new DatabaseSync(this.filename, { readOnly: options.readOnly ?? false, timeout: 5000 })
     try {
       const version = Number(this.db.prepare('PRAGMA user_version').get()!.user_version)
-      if (version > SCHEMA || (options.readOnly && version !== SCHEMA)) throw new BiliError('STORAGE', '资料库版本不受当前应用支持，原文件已保留。')
+      if (version > SCHEMA || (options.readOnly && version < 1)) throw new BiliError('STORAGE', '资料库版本不受当前应用支持，原文件已保留。')
       if (this.db.prepare('PRAGMA quick_check').get()!.quick_check !== 'ok') throw new BiliError('STORAGE', '资料库完整性检查未通过，原文件已保留。')
       if (!version) {
         if (this.db.prepare("SELECT name FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%'").all().length) throw new BiliError('STORAGE', '无法识别已有资料库格式，原文件已保留。')
@@ -39,6 +41,9 @@ export class LibraryStore {
           CREATE TABLE meta(key TEXT PRIMARY KEY, value TEXT NOT NULL);
           PRAGMA user_version=1; COMMIT;`)
       }
+      if (version < 2 && !options.readOnly) this.db.exec(`BEGIN IMMEDIATE;
+        CREATE TABLE local_files(id TEXT PRIMARY KEY, path TEXT NOT NULL);
+        PRAGMA user_version=2; COMMIT;`)
       this.db.exec('PRAGMA foreign_keys=ON;')
       if (!options.readOnly) this.db.exec('PRAGMA journal_mode=WAL; PRAGMA synchronous=FULL;')
     } catch (error) { this.db.close(); throw error }
@@ -55,18 +60,31 @@ export class LibraryStore {
     catch (error) { this.db.exec('ROLLBACK'); throw error }
   }
   read(): LibrarySnapshot {
-    const videos = new Map<string, QueueEntry['video']>()
+    const videos = new Map<string, NonNullable<QueueEntry['video']>>()
     const tracks = this.db.prepare('SELECT * FROM tracks ORDER BY added_at DESC,id').all().map(row => {
       const payload = String(row.video)
-      if (!videos.has(payload)) videos.set(payload, check.video(JSON.parse(payload)))
-      return { id: String(row.id), video: videos.get(payload)!, cid: Number(row.cid), displayTitle: String(row.display_title), artist: String(row.artist),
+      const cid = Number(row.cid)
+      let entry: QueueEntry
+      // Local tracks reuse the metadata column. Their paths live in local_files.
+      if (cid === 0) entry = check.entry({ id: row.id, local: JSON.parse(payload) })
+      else {
+        if (!videos.has(payload)) videos.set(payload, check.video(JSON.parse(payload)))
+        entry = { id: String(row.id), video: videos.get(payload)!, cid }
+      }
+      return { ...entry, displayTitle: String(row.display_title), artist: String(row.artist),
         favorite: row.favorite === 1, addedAt: Number(row.added_at), lastPlayedAt: Number(row.played_at), playCount: Number(row.play_count) } satisfies LibraryTrack
     })
     const byId = new Map(tracks.map(track => [track.id, track]))
-    const membership = this.db.prepare('SELECT * FROM playlist_tracks ORDER BY position').all()
+    const membership = new Map<string, string[]>()
+    for (const row of this.db.prepare('SELECT playlist_id,track_id FROM playlist_tracks ORDER BY playlist_id,position').all()) {
+      const id = String(row.playlist_id), trackId = String(row.track_id)
+      const tracks = membership.get(id)
+      if (tracks) tracks.push(trackId)
+      else membership.set(id, [trackId])
+    }
     const playlists = this.db.prepare('SELECT * FROM playlists ORDER BY created_at,id').all().map(row => ({
       id: String(row.id), name: String(row.name), createdAt: Number(row.created_at), updatedAt: Number(row.updated_at),
-      trackIds: membership.filter(item => item.playlist_id === row.id).map(item => String(item.track_id)),
+      trackIds: membership.get(String(row.id)) ?? [],
     }))
     const saved = this.meta<{ ids: string[]; currentId: string | null; mode: PlayerSession['queue']['mode']; position: number }>('session', { ids: [], currentId: null, mode: 'sequence', position: 0 })
     if (saved.ids.some(id => !byId.has(id))) throw new BiliError('STORAGE', '保存的播放队列引用了缺失曲目，请从备份恢复。')
@@ -75,13 +93,37 @@ export class LibraryStore {
       dataDirectory: this.directory, lastBackup: this.meta<string | null>('lastBackup', null) }
   }
   private remember(entries: QueueEntry[]) {
-    const insert = this.db.prepare(`INSERT INTO tracks(id,video,cid,added_at) VALUES(?,?,?,?)
-      ON CONFLICT(id) DO UPDATE SET video=excluded.video`)
+    if (!entries.length) return
+    const insert = this.db.prepare(`INSERT INTO tracks(id,video,cid,added_at,display_title,artist) VALUES(?,?,?,?,?,?)
+      ON CONFLICT(id) DO UPDATE SET video=excluded.video WHERE tracks.video <> excluded.video`)
+    const find = this.db.prepare('SELECT 1 FROM tracks WHERE id=?')
     let count = Number(this.db.prepare('SELECT count(*) AS n FROM tracks').get()!.n)
     for (const entry of entries) {
-      if (!this.db.prepare('SELECT 1 FROM tracks WHERE id=?').get(entry.id)) { if (++count > MAX_TRACKS) check.invalid(`资料库最多保存 ${MAX_TRACKS} 首。`) }
-      insert.run(entry.id, JSON.stringify(entry.video), entry.cid, Date.now())
+      if (!find.get(entry.id) && ++count > MAX_TRACKS) check.invalid(`资料库最多保存 ${MAX_TRACKS} 首。`)
+      insert.run(entry.id, JSON.stringify(entry.local ?? entry.video), entry.cid ?? 0, Date.now(), entry.displayTitle ?? '', entry.artist ?? '')
     }
+  }
+  importLocalFiles(files: SelectedAudioFile[], playlistId?: unknown) {
+    const list = playlistId === undefined ? null : this.playlist(playlistId)
+    let added = 0, addedToPlaylist = 0
+    if (files.length) this.transaction(() => {
+      const find = this.db.prepare('SELECT 1 FROM tracks WHERE id=?')
+      const grant = this.db.prepare('INSERT INTO local_files VALUES(?,?) ON CONFLICT(id) DO UPDATE SET path=excluded.path')
+      const fresh = files.filter(({ entry }) => !find.get(entry.id))
+      this.remember(fresh.map(({ entry }) => entry))
+      added = fresh.length
+      for (const { path, entry } of files) grant.run(entry.id, path)
+      if (list) {
+        const ids = [...new Set([...list.trackIds, ...files.map(({ entry }) => entry.id)])]
+        addedToPlaylist = ids.length - list.trackIds.length
+        if (addedToPlaylist) this.rewritePlaylist(list.id, ids)
+      }
+    })
+    return { snapshot: this.read(), added, existing: files.length - added, addedToPlaylist }
+  }
+  localFile(id: LocalAudioId): SelectedAudioFile | null {
+    const row = this.db.prepare('SELECT f.path,t.video FROM local_files f JOIN tracks t ON t.id=f.id WHERE f.id=? AND t.cid=0').get(id)
+    return row ? { path: String(row.path), entry: { id, local: check.localAudio(JSON.parse(String(row.video))) } } : null
   }
   private saveSessionInner(value: PlayerSession) {
     this.remember(value.queue.entries)
@@ -167,6 +209,7 @@ export class LibraryStore {
           saved.queue.entries = saved.queue.entries.filter(entry => entry.id !== id)
           if (saved.queue.currentId === id) { saved.queue.currentId = saved.queue.entries[0]?.id ?? null; saved.position = 0 }
           this.saveSessionInner(saved); this.db.prepare('DELETE FROM tracks WHERE id=?').run(id)
+          this.db.prepare('DELETE FROM local_files WHERE id=?').run(id)
           this.setMeta('sessionEpoch', this.meta('sessionEpoch', 0) + 1); break
         }
         case 'clear-history': this.db.prepare('UPDATE tracks SET played_at=0,play_count=0').run(); break
@@ -180,7 +223,7 @@ export class LibraryStore {
   exportDocument(playlistId?: string): LibraryFile {
     const snapshot = this.read(), list = playlistId ? this.playlist(playlistId) : null
     const tracks = list ? snapshot.tracks.filter(track => list.trackIds.includes(track.id)) : snapshot.tracks
-    return { format: 'bli-music-library', version: 1, exportedAt: new Date().toISOString(), tracks,
+    return { format: 'bli-music-library', version: tracks.some(track => track.local) ? 2 : 1, exportedAt: new Date().toISOString(), tracks,
       playlists: list ? [list] : snapshot.playlists,
       session: list ? { queue: { entries: [], currentId: null, mode: 'sequence' }, position: 0 } : snapshot.session,
       preferences: list ? structuredClone(defaultPreferences) : snapshot.preferences }
@@ -239,7 +282,10 @@ export class LibraryStore {
           this.rewritePlaylist(list.id, list.trackIds)
         }
       }
-      if (mode === 'replace') { this.saveSessionInner(data.session); this.setMeta('preferences', data.preferences) }
+      if (mode === 'replace') {
+        this.saveSessionInner(data.session); this.setMeta('preferences', data.preferences)
+        this.db.exec('DELETE FROM local_files WHERE id NOT IN (SELECT id FROM tracks)')
+      }
     })
     return this.read()
   }

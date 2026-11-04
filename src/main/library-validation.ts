@@ -1,6 +1,7 @@
 import type { Video } from '../shared/contracts.ts'
 import { MAX_QUEUE, modes, type QueueEntry } from '../shared/queue.ts'
 import { MAX_TRACKS, MAX_PLAYLISTS, type LibraryFile, type LibraryTrack, type Playlist, type PlayerSession, type Preferences } from '../shared/library.ts'
+import { isLocalAudioFormat, isLocalAudioId, type LocalAudio } from '../shared/local-audio.ts'
 import { BiliError } from './errors.ts'
 
 export function invalid(message = '资料库数据格式不正确。'): never { throw new BiliError('INVALID_INPUT', message) }
@@ -19,9 +20,17 @@ export function integer(value: unknown, min = 0, max = Number.MAX_SAFE_INTEGER):
 function boolean(value: unknown): boolean { if (typeof value !== 'boolean') invalid(); return value }
 function array(value: unknown, max: number): unknown[] { if (!Array.isArray(value) || value.length > max) invalid('资料库条目过多或格式无效。'); return value }
 export function trackId(value: unknown): string {
+  if (isLocalAudioId(value)) return value
   const id = string(value, 40)
   if (!/^BV[a-zA-Z0-9]{10}:[1-9]\d{0,15}$/.test(id)) invalid('曲目标识无效。')
   return id
+}
+export function localAudio(value: unknown): LocalAudio {
+  const raw = object(value)
+  if (!isLocalAudioFormat(raw.format)) invalid('本地音频格式无效。')
+  const duration = raw.duration
+  if (typeof duration !== 'number' || !Number.isFinite(duration) || duration < 0 || duration > 100000000) invalid('本地音频时长无效。')
+  return { title: string(raw.title, 2000), format: raw.format, duration }
 }
 export function video(value: unknown): Video {
   const raw = object(value), bvid = string(raw.bvid, 12)
@@ -38,14 +47,18 @@ export function video(value: unknown): Video {
   return { bvid, aid: integer(raw.aid, 1), title: string(raw.title, 2000), uploader: string(raw.uploader, 300), cover, pages, initialPage }
 }
 export function entry(value: unknown): QueueEntry {
-  const raw = object(value), source = video(raw.video), cid = integer(raw.cid, 1)
+  const raw = object(value)
   const id = trackId(raw.id)
+  const displayTitle = raw.displayTitle === undefined ? '' : string(raw.displayTitle, 300, true)
+  const artist = raw.artist === undefined ? '' : string(raw.artist, 200, true)
+  if (isLocalAudioId(id)) return { id, local: localAudio(raw.local), displayTitle, artist }
+  const source = video(raw.video), cid = integer(raw.cid, 1)
   if (id !== `${source.bvid}:${cid}` || !source.pages.some(page => page.cid === cid)) invalid('曲目与分 P 标识不一致。')
-  return { id, video: source, cid, displayTitle: raw.displayTitle === undefined ? '' : string(raw.displayTitle, 300, true), artist: raw.artist === undefined ? '' : string(raw.artist, 200, true) }
+  return { id, video: source, cid, displayTitle, artist }
 }
 export function entries(value: unknown, max = MAX_QUEUE): QueueEntry[] {
   const result = array(value, max).map(entry)
-  if (new Set(result.map(entry => entry.id)).size !== result.length) invalid('曲目列表中存在重复分 P。')
+  if (new Set(result.map(entry => entry.id)).size !== result.length) invalid('曲目列表中存在重复曲目。')
   return result
 }
 export function session(value: unknown): PlayerSession {
@@ -60,11 +73,15 @@ export function preferences(value: unknown): Preferences {
   const raw = object(value)
   if (!['blue', 'orange', 'yellow'].includes(raw.scene as string)) invalid()
   const recentSearches = array(raw.recentSearches, 8).map(value => string(value, 2048))
-  return { autoPlay: boolean(raw.autoPlay), scene: raw.scene as Preferences['scene'], recentSearches: [...new Set(recentSearches)] }
+  return {
+    autoPlay: boolean(raw.autoPlay), loudness: raw.loudness === undefined ? false : boolean(raw.loudness),
+    closeToTray: raw.closeToTray === undefined ? false : boolean(raw.closeToTray),
+    scene: raw.scene as Preferences['scene'], recentSearches: [...new Set(recentSearches)],
+  }
 }
 export function parseLibraryFile(value: unknown): LibraryFile {
   const raw = object(value)
-  if (raw.format !== 'bli-music-library' || raw.version !== 1) invalid('不支持这个资料库文件版本，原有数据未改动。')
+  if (raw.format !== 'bli-music-library' || (raw.version !== 1 && raw.version !== 2)) invalid('不支持这个资料库文件版本，原有数据未改动。')
   const tracks: LibraryTrack[] = array(raw.tracks, MAX_TRACKS).map(value => {
     const item = object(value)
     return { ...entry(value), displayTitle: string(item.displayTitle, 300, true), artist: string(item.artist, 200, true),
@@ -72,6 +89,7 @@ export function parseLibraryFile(value: unknown): LibraryFile {
   })
   const ids = new Set(tracks.map(track => track.id))
   if (ids.size !== tracks.length) invalid('资料库中存在重复的曲目标识。')
+  if (raw.version === 1 && tracks.some(track => track.local)) invalid('这个文件版本不支持本地音频。')
   const playlists: Playlist[] = array(raw.playlists, MAX_PLAYLISTS).map(value => {
     const item = object(value), trackIds = array(item.trackIds, MAX_TRACKS).map(trackId)
     if (new Set(trackIds).size !== trackIds.length || trackIds.some(id => !ids.has(id))) invalid('歌单中存在重复或缺失的曲目。')
@@ -84,5 +102,5 @@ export function parseLibraryFile(value: unknown): LibraryFile {
   if (!Number.isFinite(Date.parse(exportedAt))) invalid()
   // Queue metadata comes from the canonical track registry, never from imported URLs.
   saved.queue.entries = saved.queue.entries.map(entry => tracks.find(track => track.id === entry.id)!)
-  return { format: 'bli-music-library', version: 1, exportedAt, tracks, playlists, session: saved, preferences: preferences(raw.preferences) }
+  return { format: 'bli-music-library', version: raw.version, exportedAt, tracks, playlists, session: saved, preferences: preferences(raw.preferences) }
 }
