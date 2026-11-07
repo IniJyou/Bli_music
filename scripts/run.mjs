@@ -14,6 +14,7 @@ for (const [key, folder] of Object.entries({
   mkdirSync(env[key], { recursive: true })
 }
 delete env.ELECTRON_RUN_AS_NODE
+env.CSC_IDENTITY_AUTO_DISCOVERY = 'false'
 let mode = process.argv[2]
 const vite = resolve(root, 'node_modules/electron-vite/bin/electron-vite.js')
 
@@ -58,7 +59,17 @@ if (mode === 'launch' || mode === 'launch-software' || mode === 'build') {
 }
 let executable = process.execPath
 let args
-if (mode === 'smoke-p4') {
+if (mode === 'smoke-p5') {
+  args = [resolve(root, 'scripts/smoke-install.mjs')]
+} else if (mode === 'dist') {
+  const builder = resolve(root, 'node_modules/electron-builder/cli.js')
+  if (!existsSync(builder)) throw new Error('P5 packaging dependencies are missing. Follow docs/p5_download_plan.md.')
+  for (const scriptArgs of [[resolve(root, 'scripts/create-distribution-notices.mjs')], [resolve(root, 'scripts/run.mjs'), 'build']]) {
+    const code = await run(process.execPath, scriptArgs)
+    if (code !== 0) process.exit(code)
+  }
+  args = [builder, '--win', 'nsis', '--x64', '--publish=never', '--config', resolve(root, 'electron-builder.json')]
+} else if (mode === 'smoke-p4') {
   args = [resolve(root, 'scripts/smoke-local.mjs'), '--p4']
 } else if (mode === 'smoke-p2' || mode === 'smoke-local') {
   args = [resolve(root, `scripts/${mode}.mjs`)]
@@ -71,9 +82,12 @@ if (mode === 'smoke-p4') {
   if (mode === 'smoke') args.push('--p1-smoke')
   if (mode === 'start-software') args.push('--software-rendering')
 } else {
-  throw new Error('Expected dev, build, launch, launch-software, start, start-software, smoke, smoke-p2, smoke-local or smoke-p4.')
+  throw new Error('Expected dev, build, dist, launch, launch-software, start, start-software, smoke, smoke-p2, smoke-local, smoke-p4 or smoke-p5.')
 }
 process.exitCode = await run(executable, args, !['start', 'start-software', 'dev'].includes(mode))
+if (mode === 'dist' && process.exitCode === 0) {
+  process.exitCode = await run(process.execPath, [resolve(root, 'scripts/verify-distribution.mjs')])
+}
 
 async function run(executable, args, windowsHide = true) {
   const child = spawn(executable, args, { cwd: root, env, stdio: 'inherit', windowsHide })

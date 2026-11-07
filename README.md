@@ -1,84 +1,117 @@
+<p align="center">
+  <img src="src/renderer/src/assets/coffee.svg" width="76" alt="Bli Music 咖啡杯图标" />
+</p>
+
 # Bli Music
 
-个人使用的 Windows 音乐播放器，支持本地音乐及 B 站未登录可访问的音源。当前开发版本为 0.2.0。
+一款 Windows 音乐播放器，播放本地文件与 Bilibili 公开音源。用本地歌单、喜欢和播放队列整理音乐，配合雨窗、漂流、日光三套纸感场景。
 
-## 当前功能
+**Windows 10/11 x64 · v0.5.0 · MIT**
 
-搜索歌名或歌手，或者粘贴 BV/AV 编号、B站视频链接、b23.tv 短链；支持分页搜索与多分 P 选择。使用独立匿名会话，不读取浏览器账号，不提供个人 Cookie 输入。
+[下载 Windows 安装包](https://github.com/IniJyou/Bli_music/releases/download/v0.5.0/Bli-Music-0.5.0-win-x64-setup.exe) · [查看 Release](https://github.com/IniJyou/Bli_music/releases/latest) · [安装与迁移说明](docs/windows_release.md)
 
-关键词、BV/AV 与视频链接统一使用紧凑圆角输入框和主区域结果列表，按标题、UP 主、时长排列；支持选择、双击播放、直接喜欢、加入队列、分段选择，以及可逐条删除或清空的最近搜索。结果行的爱心可添加或取消喜欢，保存到资料库而不改变队列与播放；关键词默认对应 P1，视频链接保留指定的分 P。点击分段按钮才打开选择侧栏。启动默认音量为 5%，可输入百分比并按 0.1% 微调。
+![雨窗场景中的聆听页面](docs/images/listening-rain.png)
 
-跨视频队列支持去重、排序、移除、顺序／循环／随机、自动切歌与错误跳过。搜索与加入队列不打断当前播放。**队列、进度、模式与场景自动保存，重启默认暂停，点击播放后重新获取音源并续播。**启动自动播放可在资料库设置中开启。
+## 页面展示
 
-播放队列采用完整曲目列表，按标题、UP 主和时长排列，配合原创抽象唱片图形。支持单击选择、双击播放、定位当前、行尾排序和移除；队列与搜索、沉浸页切换保持播放。
+漂流和日光场景可切换到沉浸播放。切换页面时共用同一个播放器。
 
-多分 P 的“日语版／英语版／伴奏”等版本标签会配合原视频标题展示，版本在副行可见；合集里已有明确歌名的分 P 保留自己的歌名。队列、播放栏与沉浸页名称一致，悬停可看完整名称。
+| 漂流 | 日光 |
+| --- | --- |
+| ![漂流场景的沉浸播放](docs/images/listening-orange.png) | ![日光场景的沉浸播放](docs/images/listening-yellow.png) |
 
-资料库支持本地歌单、喜欢、最近播放、歌单内搜索，以及手动编辑歌名和歌手；原视频、分 P 名称与 UP 主分别保留。队列可保存为歌单，歌单可重命名、排序和导出。
+资料库集中管理喜欢、历史和本地歌单，也提供本地音乐与外部歌单导入入口。
 
-在资料库右上角点「导入本地音乐」，可多选 MP3、FLAC、WAV、M4A、AAC、OGG、OGA、Opus 和 WebM 音频。打开自建歌单时导入会同时加入该歌单。本地音乐与 B 站曲目可以混排，支持离线播放和续播。应用引用原文件，移动文件后请恢复原路径或重新导入。歌名默认取自文件名，可在资料库编辑。
+![本地资料库与歌单](docs/images/library.png)
 
-「导入外部歌单」读取公开的网易云音乐或 QQ 音乐歌单，每次最多 500 首。按歌名、歌手和时长匹配 B 站候选，可以改搜、粘贴指定分 P 的链接、试听或跳过。确认后创建本地歌单。
+<details>
+<summary>查看搜索与播放队列</summary>
 
-「备份与设置」可开启响度均衡和关闭窗口时收起到托盘，两项默认关闭。托盘菜单可控制播放、切歌、显示窗口和退出。播放中的曲目可通过 Windows 系统媒体控件操作。
+关键词、BV/AV 和视频链接统一显示在主区域，搜索结果可直接喜欢、播放或加入队列。
 
-开发期数据保存在项目内 `.data`（默认 D 盘），与 `.cache` 分开且排除 Git。资料库可导出 JSON、预览后合并或恢复；删除歌单、删除资料库曲目及整体恢复前自动创建可恢复的 SQLite 备份。这里只导入 Bli Music 本地文件，网易云／QQ 音乐匹配留到后续阶段。
+![关键词搜索结果](docs/images/search.png)
 
-无人物的雨窗、漂流、日光三套全窗口场景保留纸感与留白，配合原创咖啡杯图标、透明播放控制和沉浸模式。场景、侧栏与页面切换共享音频；Escape 关闭侧栏或返回先前页面。无独立音轨、需要权限或访问受限的内容明确提示，不保证所有视频都可以匿名播放。
+队列支持混排本地音乐与 B 站音源，分 P 的语言版本单独显示。
 
-## 安装前
+![播放队列与版本信息](docs/images/queue.png)
 
-下载和 Git 提交需要用户明确授权，见 `AGENTS.md`。具体依赖、来源、D 盘路径及安装命令见 `docs/p0_download_plan.md`。不要以“开始开发”作为自动下载授权。
+</details>
 
-## 下载获授权并安装依赖后
+截图来自 0.5.0 的独立演示资料库，包含手动整理的曲目信息和本地示例。搜索页面使用真实公开接口。
+
+## 功能
+
+| 功能 | 使用方式 |
+| --- | --- |
+| 在线搜索 | 搜索歌名、歌手，解析 BV/AV、B 站视频链接和 b23.tv 短链，选择多分 P |
+| 本地音乐 | 多选导入 MP3、FLAC、WAV、M4A、AAC、OGG、OGA、Opus、WebM，与在线曲目混排 |
+| 本地资料库 | 歌单、喜欢、最近播放、歌单内搜索，编辑展示歌名和歌手 |
+| 外部歌单 | 导入公开网易云、QQ 音乐歌单，每次最多 500 首，匹配 B 站候选并试听、纠正、跳过 |
+| 播放控制 | 顺序、列表循环、单曲循环、随机，队列排序、拖动进度、错误跳过 |
+| 音量与响度 | 默认音量 5%，百分比输入和 0.1% 微调，可选响度均衡 |
+| 恢复与备份 | 保存队列、进度、模式和场景，重启默认暂停，JSON 导入导出和 SQLite 备份 |
+| 桌面集成 | 咖啡杯图标、托盘菜单、可选关闭窗口收起托盘，Windows 系统媒体控制 |
+
+自动匹配最多三路查询，相同搜索词合并处理。停止后可继续匹配待处理和失败曲目，保存时复用已查询的视频信息。真实歌单的提速测量见 [P4 验证记录](docs/p4_validation.md)。
+
+## 安装和使用
+
+1. 在 [Release](https://github.com/IniJyou/Bli_music/releases/latest) 下载 Windows x64 安装包，按向导选择安装位置。
+2. 从桌面或开始菜单的咖啡杯图标打开 Bli Music。
+3. 搜索音乐或导入本地文件，把喜欢的版本整理到自己的歌单。
+
+0.5.0 安装包约 **99 MiB**，安装后的程序目录约 **311 MiB**。新安装、覆盖升级、重启续播、快捷方式及卸载后的数据保留已在本机实测。[完整验证记录](docs/p5_validation.md)
+
+个人构建采用未签名的安装包，Windows 可能显示“未知发布者”。[SHA-256 校验文件](https://github.com/IniJyou/Bli_music/releases/download/v0.5.0/SHA256SUMS.txt) 随版本发布。
+
+## 数据与迁移
+
+安装版默认使用以下目录。
+
+- 资料库、备份与导出位于 `D:\BliMusicData\<Windows用户名>\data`。
+- 缓存和日志位于 `D:\BliMusicData\<Windows用户名>\cache`。
+- 没有 D 盘时，使用当前用户 AppData 下的 `BliMusic` 目录。
+
+在「资料库 → 备份与设置」可查看路径、打开目录、创建备份和导入导出。高级用户可通过绝对目录环境变量 `BLI_MUSIC_HOME` 指定主目录。
+
+从开发版升级时，先导出原资料库 JSON，再在安装版导入恢复。本地音乐需要重新选择原文件，以恢复读取权限并保留已有的编辑、喜欢与歌单信息。[详细迁移步骤](docs/windows_release.md)
+
+本地音乐引用原文件，移动后需恢复原路径或重新导入。覆盖安装和卸载会保留独立的数据目录。
+
+## 音源与使用范围
+
+在线音源使用 Bilibili 未登录可访问的视频。访问受限、无独立音轨、限流和网络错误会显示明确状态，候选歧义可由用户修正。首版跳过 B 站个人账号接入、收藏夹同步、歌词和译文。
+
+视频标题、UP 主、歌单信息与音视频由各自来源提供。仓库和安装包包含播放器及原创界面素材，音乐和 MV 由使用时选定的来源提供。
+
+## 源码运行与构建
+
+开发环境使用 Windows x64、Node.js **24.16.0 或更高的 24.x** 和 PowerShell 7。技术栈为 Electron、React、TypeScript、electron-vite 和内置 SQLite。
+
+将仓库放在 D 盘后，可使用现有安装脚本配置依赖、Electron 和下载缓存。
+
+```powershell
+pwsh -NoProfile -ExecutionPolicy Bypass -File .\scripts\install-p0.ps1
+npm.cmd run dev
+```
+
+常用检查和打包命令如下。
 
 ```powershell
 npm.cmd run typecheck
 npm.cmd test
 npm.cmd run build
-npm.cmd run smoke:p1
-npm.cmd run smoke:p2
-node.exe scripts/run.mjs smoke-local
-node.exe scripts/run.mjs smoke-p4
-npm.cmd run start
+npm.cmd run dist
 ```
 
-日常打开运行 `start.cmd`。已有构建可用时直接打开，源码变更或构建产物缺失时用已安装的本地工具重新构建。`start-p0.cmd` 为兼容入口。如果最大化／还原仍有整屏闪烁，可用 `start-software.cmd` 对照运行，本次应用会使用软件渲染。
+`dist` 将 Windows 安装包和 `SHA256SUMS.txt` 输出到 `release`，首次打包会获取官方 NSIS 等构建工具。下载内容与路径见 [P5 下载清单](docs/p5_download_plan.md)。
 
-`smoke:p1` 访问真实公开接口并静音播放，覆盖搜索、导入、队列、Range、连续切歌、异常恢复与原生窗口切换；窗口检查期间会短暂显示应用。可恢复错误与延迟竞态另用明确标记的故障注入验证。报告与截图保存到 `.artifacts/p1`。`smoke:p0` 为当前回归的兼容别名，历史 P0 记录保持独立。声音效果和物理屏幕闪烁仍需设备体验确认。
+已安装依赖后也可双击 `start.cmd`，它会复用有效构建，源码变化时自动重建。开发版资料库位于项目内 `.data`。桌面回归命令和测试条件见 [P5 验证记录](docs/p5_validation.md) 与 [P2 验证记录](docs/p2_validation.md)。
 
-`smoke:p2` 使用隔离资料库启动三个真实 Electron 进程，验证歌单、编辑、喜欢、历史、导入导出、备份及跨进程进度恢复。报告与截图在 `.artifacts/p2`，不使用个人 `.data`；文件窗口选择在检查中使用测试路径，原生选择框操作需本机体验。首次从 P1 升级时没有旧的持久队列文件，从 P2 开始保存。
+## 许可与项目资料
 
-`smoke-local` 使用合成 WAV 和隔离资料库验证本地导入、解码、拖动及重启续播。可以用 `MYMUSIC_LOCAL_AUDIO_FIXTURES` 指定其他测试格式的样本目录。报告保存在 `.artifacts/local-audio`。
+源码采用 [MIT 许可证](LICENSE)。咖啡杯图标、场景和纸纹素材为本项目自行实现。第三方组件声明见 [THIRD_PARTY_NOTICES.txt](THIRD_PARTY_NOTICES.txt)，Electron 的许可与 Chromium 声明随程序提供。
 
-`smoke-p4` 使用独立资料库验证公开歌单导入、实际音量增益、托盘和 Windows 媒体会话。报告保存在 `.artifacts/p4`。
+[项目计划](project_plan.md) · [协作规则](AGENTS.md) · [Windows 使用说明](docs/windows_release.md)
 
-## 不需要安装项目依赖的检查
-
-当前 Node.js 24 可以直接执行这些本地 TypeScript 检查：
-
-```powershell
-node.exe --test tests/source.test.ts
-node.exe scripts/probe-p0.ts
-```
-
-第一条使用独立测试数据验证解析和异常逻辑；第二条访问真实 B站元信息接口并生成记录，不请求音轨文件字节。两者都不能替代 Electron 的实际播放检查。
-
-## 文档
-
-- `project_plan.md`：产品范围和进度。
-- `docs/p2_implementation.md`：当前资料库、数据位置、导入导出、备份及删除边界。
-- `docs/p2_validation.md`：P2 技术验证、三次启动证据与体验步骤。
-- `docs/p4_validation.md`：外部歌单、响度均衡和 Windows 媒体控制的验证与体验步骤。
-- `docs/p1_implementation.md`：基础播放器、匿名网络会话、窗口修复和咖啡杯图标。
-- `docs/p1_validation.md`：P1 历史验证与设备检查步骤。
-- `docs/development_environment.md`：开发前环境检查记录。
-- `docs/p0_download_plan.md`：本批已获授权的下载清单与实际安装记录。
-- `docs/p0_validation.md`：P0 验证范围、结果与人工试听步骤。
-- `docs/ui_v1.md`：第一版界面改动、视觉来源及验证记录。
-- `docs/ui_v2.md`：P0 第二版视觉接入的历史记录。
-- `docs/p0_licenses.md`：依赖及参考项目许可记录。
-
-## 许可状态
-
-项目最终开源许可证尚待用户决定，目前 `package.json` 的 `UNLICENSED` 为开发期占位，不表示已完成公开发行准备。P0 业务代码自行实现，第三方依赖按各自许可证使用；未复制 BiliMusic 未明确获许可的代码或素材。
+功能调研参考了 [BiliMusic](https://github.com/HanversionOvO/BiliMusic) 和 [BBPlayer](https://github.com/bbplayer-app/BBPlayer)。

@@ -1,15 +1,19 @@
 {
   "name": "bli-music",
-  "version": "0.2.0",
+  "version": "0.5.0",
+  "author": "IniJyou",
   "private": true,
   "description": "Windows music player with anonymous Bilibili search and audio queues",
   "type": "module",
   "main": "out/main/index.js",
-  "license": "UNLICENSED",
-  "engines": { "node": ">=24.16.0 <25" },
+  "license": "MIT",
+  "engines": {
+    "node": ">=24.16.0 <25"
+  },
   "scripts": {
     "dev": "node scripts/run.mjs dev",
     "build": "node scripts/run.mjs build",
+    "dist": "node scripts/run.mjs dist",
     "start": "node scripts/run.mjs start",
     "typecheck": "tsc --noEmit",
     "test": "node --disable-warning=ExperimentalWarning --test tests/*.test.ts",
@@ -28,6 +32,7 @@
     "@types/react-dom": "19.3.0",
     "@vitejs/plugin-react": "5.0.4",
     "electron": "45.1.0",
+    "electron-builder": "26.18.0",
     "electron-vite": "5.0.0",
     "typescript": "5.9.3",
     "vite": "7.3.1"
