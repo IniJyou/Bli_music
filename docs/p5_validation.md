@@ -37,6 +37,8 @@
 
 SHA-256 为 `f5567c9345d88db350be50c428957c2723d3325c2b29c7d57e4ded72cedfceca`，另见 `release/SHA256SUMS.txt`。
 
+2026-11-07 已将发行代码 `19f2a80` 发布为 [GitHub v0.5.0 Release](https://github.com/IniJyou/Bli_music/releases/tag/v0.5.0)。安装包和 `SHA256SUMS.txt` 均已上传，GitHub 返回的文件大小和 SHA-256 与本地文件一致。README 的六张界面截图已逐一核对 GitHub 文件摘要。
+
 ## 复现
 
 ```powershell
