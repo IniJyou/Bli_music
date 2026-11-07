@@ -1,5 +1,6 @@
 import { app, BrowserWindow, ipcMain, protocol, session, net, dialog } from 'electron'
-import { mkdirSync, readdirSync } from 'node:fs'
+import { existsSync, mkdirSync, readdirSync } from 'node:fs'
+import { userInfo } from 'node:os'
 import { dirname, resolve, sep } from 'node:path'
 import { fileURLToPath, pathToFileURL } from 'node:url'
 import { BilibiliClient, toPublicError, type Fetcher } from './bilibili.ts'
@@ -12,16 +13,17 @@ import { LocalMediaGateway } from './local-media.ts'
 import { ExternalPlaylistClient } from './external-playlists.ts'
 import { ImportLookupLimiter } from './import-lookups.ts'
 import { DesktopTray } from './desktop-tray.ts'
+import { appPaths } from './app-paths.ts'
 import type { P2Phase } from './smoke-p2.ts'
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), '../..')
-const p4Smoke = process.argv.includes('--p4-smoke')
+const p4Smoke = !app.isPackaged && process.argv.includes('--p4-smoke')
 if (process.platform === 'win32') app.setAppUserModelId(p4Smoke ? 'com.inijyou.blimusic.p4test' : 'com.inijyou.blimusic')
-const p2Smoke = process.argv.includes('--p2-smoke')
-const localSmoke = process.argv.includes('--local-smoke')
+const p2Smoke = !app.isPackaged && process.argv.includes('--p2-smoke')
+const localSmoke = !app.isPackaged && process.argv.includes('--local-smoke')
 if (p4Smoke && !localSmoke) throw new Error('P4 smoke requires an isolated local profile')
 const librarySmoke = p2Smoke || localSmoke
-const smoke = librarySmoke || process.argv.includes('--p1-smoke') || process.argv.includes('--p0-smoke')
+const smoke = !app.isPackaged && (librarySmoke || process.argv.includes('--p1-smoke') || process.argv.includes('--p0-smoke'))
 const testProfile = process.argv.find(value => value.startsWith('--p2-profile='))?.slice(13) ?? ''
 const testPhase = process.argv.find(value => value.startsWith('--p2-phase='))?.slice(11) ?? ''
 if (p2Smoke && (!/^[0-9a-z-]{1,80}$/.test(testProfile) || !['write', 'restore', 'autoplay'].includes(testPhase))) throw new Error('Invalid P2 test profile')
@@ -30,10 +32,24 @@ const localProfile = process.argv.find(value => value.startsWith('--local-profil
 if (localSmoke && !/^[0-9a-z-]{1,80}$/.test(localProfile)) throw new Error('Invalid local audio test profile')
 const localDirectory = resolve(root, p4Smoke ? '.artifacts/p4' : '.artifacts/local-audio', localProfile)
 if (process.argv.includes('--software-rendering')) app.disableHardwareAcceleration()
-const runtime = resolve(root, '.cache/runtime', smoke ? `smoke-${process.pid}` : 'player')
-mkdirSync(runtime, { recursive: true })
-for (const key of ['userData', 'sessionData', 'crashDumps'] as const) app.setPath(key, runtime)
-app.setAppLogsPath(resolve(runtime, 'logs'))
+const username = userInfo().username.replace(/[<>:"/\\|?*\u0000-\u001f]/g, '_')
+const installedHome = existsSync('D:\\') ? resolve('D:/BliMusicData', username) : resolve(app.getPath('appData'), 'BliMusic')
+let paths: ReturnType<typeof appPaths>
+let runtime: string
+try {
+  paths = appPaths({
+    packaged: app.isPackaged, project: app.isPackaged ? dirname(process.execPath) : root,
+    defaultHome: installedHome, override: smoke ? undefined : process.env.BLI_MUSIC_HOME,
+  })
+  runtime = smoke ? resolve(root, '.cache/runtime', `smoke-${process.pid}`) : paths.runtime
+  mkdirSync(runtime, { recursive: true })
+  for (const key of ['userData', 'sessionData', 'crashDumps'] as const) app.setPath(key, runtime)
+  app.setAppLogsPath(resolve(runtime, 'logs'))
+} catch (error) {
+  dialog.showErrorBox('Bli Music 无法打开数据目录', `${error instanceof Error ? error.message : '请检查目录权限。'}\n\n可通过 BLI_MUSIC_HOME 指定可写的数据目录。`)
+  app.exit(1)
+  throw error
+}
 if (!smoke && !app.requestSingleInstanceLock()) { app.quit() }
 app.on('second-instance', () => { if (window?.isMinimized()) window.restore(); window?.show(); window?.focus() })
 protocol.registerSchemesAsPrivileged([
@@ -58,7 +74,7 @@ app.whenReady().then(async () => {
   const importLookups = new ImportLookupLimiter()
   const gateway = new MediaGateway(client, fetcher, userAgent)
   const rendererRoot = resolve(root, 'out/renderer')
-  const devUrl = process.env.ELECTRON_RENDERER_URL
+  const devUrl = app.isPackaged ? undefined : process.env.ELECTRON_RENDERER_URL
   const csp = [
     "default-src 'self'", `script-src 'self'${devUrl ? " 'unsafe-inline'" : ''}`,
     "style-src 'self' 'unsafe-inline'", "img-src 'self' https://*.hdslb.com data:",
@@ -99,7 +115,7 @@ app.whenReady().then(async () => {
   handle('music:import-search', input => importLookups.run(250, () => client.search(input)))
   handle('music:import-inspect', input => importLookups.run(150, () => client.inspect(input)))
   const testDirectory = localSmoke ? localDirectory : p2Directory
-  const dataDirectory = librarySmoke ? resolve(testDirectory, 'data') : smoke ? resolve(runtime, 'library') : resolve(root, '.data')
+  const dataDirectory = librarySmoke ? resolve(testDirectory, 'data') : smoke ? resolve(runtime, 'library') : paths.data
   let library: LibraryService | null = null
   try {
     library = new LibraryService(dataDirectory, () => window, librarySmoke ? {
@@ -110,7 +126,7 @@ app.whenReady().then(async () => {
   }
   catch (error) {
     console.error('Library opening failed:', error instanceof Error ? error.message : 'Unknown storage error')
-    handle('library:read', async () => { throw new BiliError('STORAGE', '资料库未能打开，原数据已保留。请检查 .data 目录及备份后重试。') })
+    handle('library:read', async () => { throw new BiliError('STORAGE', `资料库未能打开，原数据已保留。请检查 ${dataDirectory} 及备份后重试。`) })
     handle('library:open-directory', async () => { const { shell } = await import('electron'); await shell.openPath(dataDirectory) })
   }
   const localMedia = new LocalMediaGateway(id => library?.store.localFile(id) ?? null)
